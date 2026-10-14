@@ -182,15 +182,6 @@ All training lives in `ml/notebooks/` and runs in Google Colab.
  
 | Phase | Weeks | Deliverables | Status |
 |---|---|---|---|
-| 0. Planning and documentation | Week 1 | Chapters 1-2 draft, reconciled requirements, system flow diagram, Figma wireframes | In progress |
-| 1. Foundation | Weeks 2-3 | Repository setup, FastAPI skeleton, SQLite schema, sensor simulator | Not started |
-| 2. RUL engine | Weeks 3-4 | Degradation curve model, RUL computation endpoint, unit tests | Not started |
-| 3. Dashboard | Weeks 4-5 | Batch list, priority queue, RUL charts, live updates | Not started |
-| 4. ML pricing | Weeks 5-7 | MDP formulation, rule baseline, PPO training in Colab, policy export | Not started |
-| 5. NLP sentiment | Weeks 6-7 | Review ingestion, sentiment scoring, price multiplier | Not started |
-| 6. Integration | Week 8 | Policy loaded in backend, approve or override flow, decision log | Not started |
-| 7. Polish and testing | Week 9 | Freshness indicator, testing, bug fixes, demo data | Not started |
-| 8. Documentation and defense | Week 10 | Chapters 3-5, final README, demo and presentation | Not started |
  
 ### Milestones
  
