@@ -1,16 +1,15 @@
+# Dynamic Perishable Inventory Management System
 
+**With Sensor-Based Shelf-Life Tracking and NLP Sentiment Decision Support** (JAM SOFT capstone)
 
-Readme · MD
-# Multi-Sensor FEFO Engine with Automated Inventory Markdown and Valuation Optimization
- 
-A decision-support prototype that replaces static expiration dates with dynamic shelf-life estimates computed from temperature and humidity telemetry, then recommends markdown prices so aging perishable stock sells before it spoils. Final pricing decisions always stay with a human supervisor.
- 
-> **Status:** Prototype in active development. Sensor data is simulated and demand data is synthetic.
- 
+A decision-support system that replaces static expiry dates with shelf-life estimates computed from temperature and humidity telemetry. It analyzes customer feedback sentiment and recommends priority dispatch, markdowns, or salvage. A human supervisor approves or rejects every recommendation.
+
+> **Status:** Prototype in active development. Sensor data comes from a simulator, and the review data is synthetic.
+
 ---
- 
+
 ## Table of Contents
- 
+
 1. [Overview](#overview)
 2. [Key Features](#key-features)
 3. [Scope and Limitations](#scope-and-limitations)
@@ -19,176 +18,191 @@ A decision-support prototype that replaces static expiration dates with dynamic 
 6. [Repository Structure](#repository-structure)
 7. [Getting Started](#getting-started)
 8. [API Overview](#api-overview)
-9. [Machine Learning Pipeline](#machine-learning-pipeline)
-10. [Project Timeline](#project-timeline)
-11. [Team](#team)
-12. [Future Work](#future-work)
- 
+9. [RUL Model](#rul-model)
+10. [Evaluation](#evaluation)
+11. [Milestones](#milestones)
+
 ---
- 
+
 ## Overview
- 
-Traditional First-Expired, First-Out (FEFO) handling relies on fixed dates printed on packaging. Those dates cannot reflect shelf-life lost to cold-chain disruptions and thermal spikes. This project estimates **Remaining Useful Life (RUL)** from live environmental readings and uses it to:
- 
-- Prioritize which batches should be dispatched or sold first
-- Recommend markdown discounts that shift buyers from LEFO (last-expired, first-out) to FEFO picking
-- Give supervisors a dashboard to approve or override every recommendation
- 
+
+First-Expired, First-Out (FEFO) handling relies on the date printed on the package. That date does not reflect shelf life lost to cold-chain breaks and thermal abuse. This system estimates **Remaining Useful Life (RUL)** per batch from sensor readings and uses it to:
+
+- Order dispatch by dynamic RUL (dynamic FEFO)
+- Recommend tiered markdowns tied to remaining life
+- Flag batches for salvage
+- Let a supervisor approve or reject every recommendation
+
+The approach follows Herron et al. (2022), Buisman et al. (2019), Haijema et al. (2026), and Riesenegger & Hubner (2026).
+
 ## Key Features
- 
+
 | Feature | Description |
 |---|---|
-| Dynamic shelf-life estimation | RUL computed per batch from temperature and humidity history |
-| Markdown optimization | Rule-based baseline plus a PPO-trained policy for discount rates |
-| NLP sentiment multiplier | Customer review sentiment adjusts demand and willingness-to-pay |
-| Supervisory dashboard | Priority dispatch queue, freshness status, approve or override controls |
-| Decision log | Every approval or override is stored for later evaluation |
-| Freshness indicator | Lightweight animated character that reflects batch freshness state (visualization only) |
- 
+| Dynamic shelf-life estimation | Q10 temperature-acceleration model, computed per batch from telemetry |
+| Recommendation engine | Rule-based `PRIORITY_DISPATCH`, `MARKDOWN` (tiered), and `SALVAGE`, with thresholds set in config |
+| NLP sentiment adjustment | Multilingual (English, Filipino, Taglish) sentiment can shift markdown depth by at most one tier |
+| Human-in-the-loop | Recommendations stay `pending` until a supervisor decides. Every decision is written to an audit log |
+| Live dashboard | SSE event stream plus REST endpoints, so clients can fall back to polling |
+| Offline demo | Runs on a laptop with `docker compose up`, with no internet needed |
+
 ## Scope and Limitations
- 
+
 **In scope**
-- Temperature and humidity monitoring (simulated sensor feed for the prototype)
-- Dynamic RUL estimation replacing static expiration labels
-- Markdown recommendations driven by freshness and price sensitivity
-- Human-in-the-loop supervisory dashboard
- 
+- Temperature and humidity sensing, using a simulator that sends the same payload as the future ESP32
+- Primary product: fresh chicken breast. Chilled fish is optional and needs only config changes
+- Labeled synthetic retail reviews for NLP
+- Two roles: `staff` (read-only) and `supervisor` (can approve and reject)
+
+**Out of scope**
+- Inventory record-keeping: stock movements, purchase orders, POS, and accounting
+- Gas and VOC sensors, and computer vision
+- Web scraping and paid external APIs at runtime
+- Price changes applied automatically
+
 **Limitations**
-- Sensing is limited to temperature and humidity. Gas sensing is out of scope for this version.
-- The system is a decision-support tool. It does not act as an official inventory ledger or execute price changes autonomously.
-- Models assume controlled storage and retail environments and do not account for disruptions outside the monitored area.
-- Prototype results use synthetic demand and review data.
- 
+- RUL parameters are placeholders until they are calibrated against Herron et al. (2022)
+- Evaluation results come from simulation, not field trials
+
 ## System Architecture
- 
+
 ```mermaid
 flowchart LR
-    SIM[Sensor simulator] --> API[FastAPI + SQLite]
-    API --> RUL[RUL engine]
-    RUL --> MD[Markdown engine]
-    POL[Trained policy<br/>from Colab] --> MD
-    NLP[NLP sentiment<br/>multiplier] --> MD
-    MD --> DASH[Dashboard<br/>approve or override]
-    DASH -. decision log .-> API
+    SIM[Simulator / ESP32] -- MQTT --> MQ[Mosquitto]
+    MQ --> WK[Worker<br/>subscriber + scheduler]
+    SIM -. HTTP fallback .-> API[FastAPI]
+    WK --> DB[(PostgreSQL + TimescaleDB)]
+    API --> DB
+    WK --> RUL[RUL engine] --> REC[Recommendation engine]
+    NLP[Sentiment engine] --> REC
+    API -- REST + SSE --> FE[Next.js dashboard]
+    FE -- approve / reject --> API
 ```
- 
-1. The simulator posts temperature and humidity readings per batch.
-2. The API validates and stores readings in SQLite.
-3. The RUL engine recomputes remaining shelf life for each batch.
-4. The markdown engine combines RUL, the sentiment multiplier, and the trained policy to propose a discount.
-5. Supervisors review recommendations on the dashboard, and each decision is logged back to the database.
- 
-Model training happens offline in Google Colab. The backend only loads the exported policy for inference.
- 
+
+1. The simulator publishes readings to `sensors/{device_id}/telemetry` over MQTT. `POST /api/v1/telemetry` accepts the same payload.
+2. The worker stores telemetry in a TimescaleDB hypertable.
+3. The worker recomputes RUL for each batch, then refreshes recommendations.
+4. The API serves REST and pushes events over SSE to the dashboard.
+5. A supervisor approves or rejects each recommendation, and the decision is written to the audit log.
+
 ## Tech Stack
- 
+
 | Layer | Technology |
 |---|---|
-| Backend API | Python, FastAPI, Pydantic, Uvicorn |
-| Database | SQLite (SQLAlchemy), upgradeable to PostgreSQL |
-| Live updates | WebSocket or Server-Sent Events |
-| Frontend | React, TypeScript, Vite, Tailwind CSS, Recharts |
-| RUL engine | NumPy, pandas, scikit-learn (regression baseline) |
-| Pricing / ML | Gymnasium, Stable-Baselines3 (PPO), PyTorch |
-| NLP | spaCy, NLTK, Hugging Face Transformers |
-| Model export | Joblib / JSON lookup table (ONNX as a stretch goal) |
-| Training environment | Google Colab |
-| Design | Figma |
-| Testing | pytest |
- 
+| Language | Python 3.12, managed with `uv` |
+| API | FastAPI, Pydantic v2, `pydantic-settings` |
+| Database | PostgreSQL 16 + TimescaleDB, SQLAlchemy 2.x, Alembic, psycopg 3 |
+| Ingestion | Mosquitto (MQTT) with `paho-mqtt`, plus an HTTP fallback |
+| Scheduler | APScheduler in the `worker` service |
+| RUL engine | NumPy, pandas |
+| NLP | Hugging Face Transformers (multilingual XLM-R), with a lexicon fallback |
+| Live push | SSE via `sse-starlette` |
+| Auth | JWT, argon2, role claims |
+| Tests / lint | pytest, pytest-asyncio, httpx, ruff, mypy |
+| Containers | Docker Compose |
+| Frontend | Next.js, TypeScript, with types generated from OpenAPI by `openapi-typescript` |
+
 ## Repository Structure
- 
+
 ```
-fefo-engine/
+.
+├── docker-compose.yml
+├── .env.example
 ├── backend/
+│   ├── alembic/               # migrations
 │   ├── app/
-│   │   ├── main.py            # FastAPI entry point
-│   │   ├── api/               # Route handlers
-│   │   ├── models/            # SQLAlchemy models and Pydantic schemas
-│   │   ├── services/
-│   │   │   ├── rul.py         # Remaining Useful Life engine
-│   │   │   ├── pricing.py     # Markdown engine (rule baseline + policy)
-│   │   │   └── sentiment.py   # NLP sentiment multiplier
-│   │   └── simulator/         # Temperature and humidity generator
-│   ├── tests/
-│   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   │   ├── components/        # Dashboard, queue, charts, freshness indicator
-│   │   └── pages/
-│   └── package.json
-├── ml/
-│   ├── notebooks/             # Colab notebooks (MDP, training, evaluation)
-│   └── models/                # Exported policy files
-├── docs/                      # Chapters, diagrams, Figma links
-└── README.md
+│   │   ├── main.py            # FastAPI app factory
+│   │   ├── core/              # config, security, logging
+│   │   ├── db/                # engine, models, seed
+│   │   ├── schemas/           # Pydantic models
+│   │   ├── api/v1/            # routers
+│   │   ├── services/          # business logic
+│   │   ├── engine/            # rul.py, recommend.py, sentiment.py (no I/O)
+│   │   ├── ingest/mqtt_sub.py # MQTT subscriber
+│   │   ├── worker.py          # scheduled jobs
+│   │   └── events.py          # pub/sub that feeds SSE
+│   └── tests/
+├── simulator/sim.py           # ESP32-compatible sensor simulator
+├── data/                      # products.yaml, reviews_seed.csv, generate_reviews.py
+├── scripts/evaluate.py        # static FEFO vs dynamic comparison
+├── infra/mosquitto/
+└── frontend/                  # Next.js dashboard
 ```
- 
+
 ## Getting Started
- 
+
 ### Prerequisites
-- Python 3.10+
-- Node.js 18+
- 
-### Backend
+- Docker with Docker Compose. Nothing else is installed on the host.
+
+### Run
 ```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+cp .env.example .env
+docker compose up --build                  # backend stack
+docker compose --profile ui up --build     # include the frontend
+docker compose run --rm api python -m app.db.seed
 ```
-API docs are served at `http://localhost:8000/docs`.
- 
-### Sensor simulator
+
+- API: `http://localhost:8000`, with docs at `/docs`
+- Frontend: `http://localhost:3000`
+
+### Simulator scenarios
 ```bash
-python -m app.simulator.run --batches 5 --interval 5
+SCENARIO=ltl_abuse SIM_SPEEDUP=60 docker compose up simulator
 ```
- 
-### Frontend
+Scenarios: `normal`, `door_open`, `compressor_failure`, `ltl_abuse`, `recover`. `SIM_SPEEDUP` moves virtual time forward faster, so decay shows up within minutes.
+
+### Tests
 ```bash
-cd frontend
-npm install
-npm run dev
+docker compose run --rm api pytest -q
 ```
- 
+
 ## API Overview
- 
-Planned endpoints (subject to change during development):
- 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| POST | `/readings` | Ingest a temperature and humidity reading for a batch |
-| GET | `/batches` | List batches with current RUL and freshness state |
-| GET | `/batches/{id}` | Batch detail with reading history |
-| GET | `/recommendations` | Current markdown recommendations |
-| POST | `/recommendations/{id}/decision` | Approve or override a recommendation |
-| POST | `/reviews` | Submit review text for sentiment scoring |
-| GET | `/stream` | Live updates for the dashboard |
- 
-## Machine Learning Pipeline
- 
-All training lives in `ml/notebooks/` and runs in Google Colab.
- 
-1. **Perishable pricing MDP.** Models age-dependent stock, holding cost, lost-sales penalty, and waste disposal cost.
-2. **Baselines.** A rule-based markdown schedule and a regression baseline.
-3. **PPO training.** Stable-Baselines3 PPO on a custom Gymnasium environment using synthetic demand, price elasticity, and LEFO-to-FEFO customer behavior.
-4. **Evaluation.** Convergence and profit benchmarks compared against the baselines.
-5. **Export.** The policy is exported as a lookup table (Joblib/JSON) and loaded by `services/pricing.py`.
- 
-## Project Timeline
- 
-> Week ranges below are a starting plan. Replace them with calendar dates that match your adviser's deadlines.
- 
-| Phase | Weeks | Deliverables | Status |
+
+All endpoints are under `/api/v1`. The OpenAPI spec is served at `/openapi.json`.
+
+| Method | Endpoint | Role | Purpose |
 |---|---|---|---|
- 
-### Milestones
- 
-- [ ] Simulator streaming readings into the API
-- [ ] RUL visible per batch on the dashboard
-- [ ] Rule-based markdown recommendations working end to end
-- [ ] PPO policy trained and exported
-- [ ] Sentiment multiplier affecting recommendations
-- [ ] Approve or override decisions logged
-- [ ] Final demo
+| POST | `/auth/login` | public | Exchange username and password for a JWT |
+| POST | `/auth/stream-token` | any | Short-lived token for SSE |
+| GET | `/me` | any | Current user and role |
+| POST | `/telemetry` | device key | HTTP fallback ingest |
+| GET | `/zones` | any | Zones with their latest reading |
+| GET | `/telemetry?zone_id=&from=&to=` | any | Reading history for charts |
+| GET | `/products` | any | Product config summary |
+| GET, POST | `/batches` | GET any, POST supervisor | Batch registry |
+| GET | `/batches/{id}` | any | Batch with its current state |
+| GET | `/batches/{id}/rul` | any | RUL history |
+| GET | `/recommendations?status=` | any | List recommendations |
+| POST | `/recommendations/{id}/decision` | supervisor | Approve or reject a recommendation |
+| POST | `/feedback` | any | Submit a review and get its sentiment |
+| GET | `/sentiment/summary?product_id=` | any | Sentiment aggregates |
+| GET | `/stream?token=` | any | SSE event stream |
+| GET | `/health` | public | Liveness and DB/MQTT status |
+
+## RUL Model
+
+```
+rate(T)          = q10 ** ((T - t_ref_c) / 10)
+effective_age_h += rate(T) * dt_hours
+rul_h            = max(0, shelf_life_ref_hours - effective_age_h)
+rul_ratio        = rul_h / shelf_life_ref_hours
+```
+
+Chicken breast uses `t_ref_c = 4` and `q10 = 2.5`. Both are placeholders until calibration. As a sanity check, Herron et al. (2022) cyclic abuse (2 h at 4 °C, then 2 h at about 23 °C) should cost about 2.3 days of shelf life.
+
+## Evaluation
+
+`scripts/evaluate.py` runs seeded simulated scenarios and compares static printed-date FEFO against dynamic RUL dispatch with tiered markdowns. It measures units spoiled, units sold past their safe life, revenue recovered, and markdown depth. All results come from simulation.
+
+## Milestones
+
+- [ ] Compose skeleton with `/health`
+- [ ] Models, migrations, and seed data
+- [ ] RUL engine with unit tests, including the Herron check
+- [ ] Simulator publishing over MQTT, with the subscriber storing telemetry
+- [ ] Worker recomputing RUL
+- [ ] Recommendation engine and the decision flow with audit log
+- [ ] Auth and the SSE stream
+- [ ] OpenAPI spec shared with the frontend team
+- [ ] Sentiment service and seed dataset
+- [ ] Evaluation script
