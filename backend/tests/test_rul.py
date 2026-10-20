@@ -40,10 +40,23 @@ def test_herron_cyclic_abuse_band():
     assert 1.5 <= lost_days <= 3.0
 
 
-def test_gap_is_capped():
+def test_gap_beyond_cap_ages_at_reference_rate():
     rs = [Reading(T0, 30, 85), Reading(T0 + timedelta(hours=10), 30, 85)]
     r = compute_rul(rs, T0, T0 + timedelta(hours=10), P)
-    assert r.effective_age_h == pytest.approx(rate(30, P) * 1.0)
+    assert r.effective_age_h == pytest.approx(rate(30, P) * 1.0 + 9.0)
+
+
+def test_no_readings_ages_at_reference():
+    r = compute_rul([], T0, T0 + timedelta(hours=100), P)
+    assert r.effective_age_h == pytest.approx(100)
+    assert r.rul_h == pytest.approx(140)
+    assert r.last_ts is None
+    assert r.predicted_expiry == T0 + timedelta(hours=100 + 140)
+
+
+def test_tail_extrapolation_capped():
+    r = compute_rul([Reading(T0, 30, 85)], T0, T0 + timedelta(hours=5), P)
+    assert r.effective_age_h == pytest.approx(rate(30, P) * 1.0 + 4.0)
 
 
 def test_duplicates_and_out_of_order_ignored():

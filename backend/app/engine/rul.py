@@ -38,29 +38,37 @@ def _hours(delta: timedelta) -> float:
     return delta.total_seconds() / 3600
 
 
+def _gap_age(gap_h: float, carried_rate: float, p: RulParams) -> float:
+    # First max_dt hours of a gap age at the carried rate; the rest at the reference rate (1.0).
+    return carried_rate * min(gap_h, p.max_dt_hours) + max(0.0, gap_h - p.max_dt_hours)
+
+
 def compute_rul(readings: Sequence[Reading], received_at: datetime, now: datetime, p: RulParams) -> RulResult:
     # Dedupe by timestamp (last wins), drop pre-receipt readings, sort ascending.
     by_ts = {r.ts: r for r in readings if r.ts >= received_at}
     pts = [by_ts[ts] for ts in sorted(by_ts)]
 
-    # Piecewise-constant: each reading's rate holds until the next reading, capped per gap.
+    # Piecewise-constant: each reading's rate holds until the next reading. Before the first
+    # reading there is no carried rate, so the first gap uses the reference rate.
     age = 0.0
     prev_ts = received_at
-    prev_rate = rate(pts[0].temperature_c, p) if pts else 1.0
+    prev_rate = 1.0
     for r in pts:
-        age += prev_rate * min(_hours(r.ts - prev_ts), p.max_dt_hours)
+        age += _gap_age(_hours(r.ts - prev_ts), prev_rate, p)
         prev_ts, prev_rate = r.ts, rate(r.temperature_c, p)
 
-    # Extrapolate the last reading forward to now, capped so silence is not assumed constant.
+    # Tail: last reading's rate carries forward to now, same gap rule.
     anchor = pts[-1].ts if pts else received_at
     if now > anchor:
-        age += prev_rate * min(_hours(now - anchor), p.max_dt_hours)
+        age += _gap_age(_hours(now - anchor), prev_rate, p)
 
     rul_h = max(0.0, p.shelf_life_ref_hours - age)
+    # Expiry is counted from the last reading; with no readings, from now (the age is up to now).
+    expiry_anchor = pts[-1].ts if pts else now
     return RulResult(
         effective_age_h=age,
         rul_h=rul_h,
         rul_ratio=rul_h / p.shelf_life_ref_hours,
         last_ts=pts[-1].ts if pts else None,
-        predicted_expiry=anchor + timedelta(hours=rul_h),
+        predicted_expiry=expiry_anchor + timedelta(hours=rul_h),
     )
