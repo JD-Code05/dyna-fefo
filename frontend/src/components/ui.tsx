@@ -165,7 +165,7 @@ export function ConfirmDelete({
       <div role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" className="w-[400px] rounded-[18px] border border-line bg-surface p-6">
         <p id="confirm-title" className="text-[15px] font-bold text-fg">{title}</p>
         <p className="mt-2 text-[11px] leading-relaxed text-muted">{body}</p>
-        {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-2.5 py-2 text-[10px] font-semibold text-danger">{error}</p>}
+        {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-2.5 py-2 text-[11px] font-semibold text-danger">{error}</p>}
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" autoFocus onClick={onCancel} className="h-10 rounded-lg border border-line px-4 text-[11px] font-semibold text-fg">
             Cancel
@@ -182,7 +182,7 @@ export function ConfirmDelete({
                 setBusy(false)
               }
             }}
-            className="h-10 rounded-lg bg-danger px-4 text-[11px] font-bold text-white disabled:opacity-50"
+            className="h-10 rounded-lg bg-danger px-4 text-[11px] font-bold text-night disabled:opacity-50"
           >
             {confirmLabel}
           </button>

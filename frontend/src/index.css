@@ -51,11 +51,11 @@ body {
   --color-track: #dfe4eb;
   --color-pill: #e4e8ee;
   --color-fg: #172033;
-  --color-muted: #667085;
-  --color-sky: #0284c7;
-  --color-danger: #dc3f3f;
-  --color-warn: #c77808;
-  --color-ok: #07845f;
+  --color-muted: #5b6475;
+  --color-sky: #0369a1;
+  --color-danger: #c42b2b;
+  --color-warn: #9a5a00;
+  --color-ok: #04724f;
   --color-violet: #7c5bd4;
   color-scheme: light;
 }
@@ -210,4 +210,12 @@ body {
   .rise-in {
     animation: none;
   }
+}
+
+/* Inputs drop the browser outline (outline-none); give keyboard users a visible ring back. */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-sky);
+  outline-offset: 1px;
 }

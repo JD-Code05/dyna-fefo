@@ -5,7 +5,7 @@ import ShelfLifeComparisonBar from './ShelfLifeComparisonBar'
 import { card, CardHint, CardTitle, Dropdown } from './ui'
 
 const Label = ({ children }: { children: ReactNode }) => (
-  <p className="font-mono text-[8px] font-medium uppercase tracking-[0.08em] text-muted">{children}</p>
+  <p className="font-mono text-[9.5px] font-medium uppercase tracking-[0.08em] text-muted">{children}</p>
 )
 
 export default function ShelfLifeCard() {
@@ -50,7 +50,7 @@ export default function ShelfLifeCard() {
       <div className="mt-4 flex min-h-0 flex-1 gap-4">
         <div className="flex min-w-0 flex-1 flex-col rounded-xl border border-line bg-night/35 p-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 font-mono text-[8.5px] text-muted">
+            <div className="flex items-center gap-4 font-mono text-[10px] text-muted">
               <span className="flex items-center gap-1.5">
                 <i className="size-2 rounded-sm bg-sky" /> Sensor-adjusted RUL
               </span>
@@ -61,19 +61,19 @@ export default function ShelfLifeCard() {
                 <i className="size-2 rounded-sm bg-track ring-1 ring-inset ring-white/10" /> Printed life
               </span>
             </div>
-            <span className="font-mono text-[8px] uppercase tracking-[0.08em] text-muted">
+            <span className="font-mono text-[9.5px] uppercase tracking-[0.08em] text-muted">
               Hours remaining
             </span>
           </div>
 
           <div className="mt-3 grid grid-cols-[112px_minmax(0,1fr)_42px] items-end gap-3 border-b border-line pb-2">
-            <span className="font-mono text-[8px] uppercase tracking-[0.08em] text-muted">Batch</span>
-            <div className="flex justify-between font-mono text-[7.5px] text-muted">
+            <span className="font-mono text-[9.5px] uppercase tracking-[0.08em] text-muted">Batch</span>
+            <div className="flex justify-between font-mono text-[9px] text-muted">
               {[0, 0.25, 0.5, 0.75, 1].map((step) => (
                 <span key={step}>{Math.round(maxHours * step)}h</span>
               ))}
             </div>
-            <span className="text-right font-mono text-[8px] uppercase tracking-[0.08em] text-muted">RUL</span>
+            <span className="text-right font-mono text-[9.5px] uppercase tracking-[0.08em] text-muted">RUL</span>
           </div>
 
           <div className="relative min-h-0 flex-1 divide-y divide-line/70 overflow-y-auto overscroll-contain [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]">
@@ -96,8 +96,8 @@ export default function ShelfLifeCard() {
               <div className="grid h-full place-items-center text-center">
                 <div>
                   <Clock3 className="mx-auto size-6 text-muted" />
-                  <p className="mt-2 text-[10px] font-semibold text-fg">No stock in this zone</p>
-                  <p className="mt-1 text-[8.5px] text-muted">Choose another warehouse zone.</p>
+                  <p className="mt-2 text-[11px] font-semibold text-fg">No stock in this zone</p>
+                  <p className="mt-1 text-[10px] text-muted">Choose another warehouse zone.</p>
                 </div>
               </div>
             )}
@@ -108,7 +108,7 @@ export default function ShelfLifeCard() {
           <div className="rounded-xl border border-line bg-night/35 p-4">
             <div className="flex items-center justify-between">
               <Label>Portfolio health</Label>
-              <span className={`flex items-center gap-1 rounded-full border px-1.5 py-0.5 font-mono text-[8.5px] font-semibold ${
+              <span className={`flex items-center gap-1 rounded-full border px-1.5 py-0.5 font-mono text-[10px] font-semibold ${
                 avgLoss >= 20
                   ? 'border-danger/30 bg-danger/10 text-danger'
                   : 'border-ok/30 bg-ok/10 text-ok'
@@ -128,12 +128,12 @@ export default function ShelfLifeCard() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <Label>Selected batch</Label>
-                  <p className="mt-1.5 truncate text-[12px] font-semibold text-fg">{selected.product}</p>
-                  <p className="mt-0.5 font-mono text-[8px] text-muted">
-                    #{selected.id} · {selected.zone}
+                  <p className="mt-1.5 truncate font-mono text-[12px] font-semibold text-fg">{selected.id}</p>
+                  <p className="mt-0.5 truncate text-[9.5px] text-muted" title={selected.product}>
+                    {selected.zone} · {selected.units} units
                   </p>
                 </div>
-                <span className={`shrink-0 rounded-full border px-2 py-1 font-mono text-[8px] font-semibold ${
+                <span className={`shrink-0 rounded-full border px-2 py-1 font-mono text-[9.5px] font-semibold ${
                   selected.dynamicHours < 24
                     ? 'border-danger/25 bg-danger/10 text-danger'
                     : selected.dynamicHours < 48
@@ -145,7 +145,7 @@ export default function ShelfLifeCard() {
               </div>
 
               <div className="mt-4">
-                <p className="font-mono text-[8px] uppercase tracking-[0.08em] text-muted">Remaining useful life</p>
+                <p className="font-mono text-[9.5px] uppercase tracking-[0.08em] text-muted">Remaining useful life</p>
                 <p className={`mt-1 text-[30px] font-bold leading-none ${
                   selected.dynamicHours < 24
                     ? 'text-danger'
@@ -157,7 +157,7 @@ export default function ShelfLifeCard() {
                 </p>
               </div>
 
-              <div className="mt-auto space-y-2.5 pt-4 font-mono text-[8.5px]">
+              <div className="mt-auto space-y-1.5 pt-3 font-mono text-[10px]">
                 <DetailRow label="Printed life" value={`${selected.staticHours}h`} />
                 <DetailRow
                   label="Life lost"
@@ -174,7 +174,7 @@ export default function ShelfLifeCard() {
             </div>
           ) : (
             <div className="grid min-h-0 flex-1 place-items-center rounded-xl border border-line bg-night/35 p-4 text-center">
-              <p className="text-[9px] text-muted">No batch selected</p>
+              <p className="text-[10.5px] text-muted">No batch selected</p>
             </div>
           )}
         </aside>
@@ -199,16 +199,16 @@ function ShelfLifeBar({
       type="button"
       onClick={onSelect}
       aria-pressed={active}
-      aria-label={`${batch.product}, ${batch.dynamicHours} hours remaining from ${batch.staticHours} printed hours`}
+      aria-label={`Batch ${batch.id}, ${batch.dynamicHours} hours remaining from ${batch.staticHours} printed hours`}
       className={`relative grid h-[46px] w-full grid-cols-[112px_minmax(0,1fr)_42px] items-center gap-3 text-left outline-none transition-colors focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-sky/60 ${
         active ? 'bg-sky/[0.055]' : 'hover:bg-white/[0.02]'
       }`}
     >
       <span className="min-w-0 pl-1">
-        <strong className={`block truncate text-[9.5px] ${active ? 'text-fg' : 'text-fg/80'}`}>
-          {batch.product}
+        <strong className={`block truncate font-mono text-[11px] ${active ? 'text-fg' : 'text-fg/80'}`}>
+          {batch.id}
         </strong>
-        <small className="mt-0.5 block font-mono text-[7.5px] text-muted">#{batch.id}</small>
+        <small className="mt-0.5 block truncate text-[9px] text-muted" title={batch.product}>{batch.product} · {batch.zone}</small>
       </span>
 
       <ShelfLifeComparisonBar
@@ -217,7 +217,7 @@ function ShelfLifeBar({
         maxHours={maxHours}
       />
 
-      <span className={`text-right font-mono text-[10px] font-bold ${
+      <span className={`text-right font-mono text-[11px] font-bold ${
         batch.dynamicHours < 24
           ? 'text-danger'
           : batch.dynamicHours < 48
@@ -233,7 +233,7 @@ function ShelfLifeBar({
 function Metric({ label, value, tone }: { label: string; value: string; tone: string }) {
   return (
     <div className="rounded-lg border border-line bg-surface/60 p-2.5">
-      <p className="font-mono text-[7px] uppercase tracking-[0.08em] text-muted">{label}</p>
+      <p className="font-mono text-[9px] uppercase tracking-[0.08em] text-muted">{label}</p>
       <p className={`mt-1 text-[17px] font-bold leading-none ${tone}`}>{value}</p>
     </div>
   )

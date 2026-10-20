@@ -13,6 +13,7 @@ import {
   Snowflake,
   Sun,
 } from 'lucide-react'
+import { api, type Schemas } from '../api/client'
 import { useInventory } from '../data/InventoryContext'
 
 const sections = [
@@ -44,6 +45,10 @@ export default function DesktopHeader({
   const { sensors, error } = useInventory()
   const online = sensors.filter((sensor) => sensor.status !== 'No data').length
   const [accountOpen, setAccountOpen] = useState(false)
+  const [me, setMe] = useState<Schemas['MeOut'] | null>(null)
+  useEffect(() => {
+    api<Schemas['MeOut']>('/me').then(setMe).catch(() => setMe(null))
+  }, [])
   const accountRef = useRef<HTMLDivElement>(null)
   const currentDate = new Intl.DateTimeFormat('en-US', {
     weekday: 'short',
@@ -79,7 +84,7 @@ export default function DesktopHeader({
             <span className="block text-[15px] font-extrabold leading-none tracking-[-0.02em] text-fg">
               FreshOps
             </span>
-            <span className="mt-1 block font-mono text-[8.5px] uppercase tracking-[0.12em] text-muted">
+            <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
               Cold-chain control
             </span>
           </span>
@@ -92,7 +97,7 @@ export default function DesktopHeader({
             aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             aria-pressed={theme === 'light'}
-            className="flex h-9 items-center gap-2 rounded-lg border border-line bg-night/50 px-2.5 text-[9px] font-semibold text-muted transition-colors hover:text-fg"
+            className="flex h-9 items-center gap-2 rounded-lg border border-line bg-night/50 px-2.5 text-[10.5px] font-semibold text-muted transition-colors hover:text-fg"
           >
             {theme === 'dark' ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
             {theme === 'dark' ? 'Light' : 'Dark'}
@@ -106,13 +111,13 @@ export default function DesktopHeader({
               aria-haspopup="menu"
               className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-white/[0.04]"
             >
-              <span className="grid size-7 place-items-center rounded-full bg-sky/15 text-[10px] font-bold text-sky">
-                MO
+              <span className="grid size-7 place-items-center rounded-full bg-sky/15 text-[11px] font-bold text-sky">
+                {(me?.username ?? '?').slice(0, 2).toUpperCase()}
               </span>
               <span>
-                <span className="block text-[10.5px] font-semibold leading-none text-fg">Mara Okafor</span>
-                <span className="mt-1 block font-mono text-[8px] uppercase tracking-[0.06em] text-muted">
-                  Shift supervisor
+                <span className="block text-[10.5px] font-semibold leading-none text-fg">{me?.username ?? 'Not signed in'}</span>
+                <span className="mt-1 block font-mono text-[9.5px] uppercase tracking-[0.06em] text-muted">
+                  {me?.role ?? '—'}
                 </span>
               </span>
               <ChevronDown className={`size-3.5 text-muted transition-transform ${accountOpen ? 'rotate-180' : ''}`} />
@@ -130,7 +135,7 @@ export default function DesktopHeader({
                     setAccountOpen(false)
                     onLogout()
                   }}
-                  className="flex h-9 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[10px] font-semibold text-danger hover:bg-danger/10"
+                  className="flex h-9 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[11px] font-semibold text-danger hover:bg-danger/10"
                 >
                   <LogOut className="size-3.5" />
                   Log out
@@ -162,7 +167,7 @@ export default function DesktopHeader({
             )
           })}
         </nav>
-        <div className="ml-auto flex items-center gap-3 font-mono text-[8.5px] uppercase tracking-[0.08em] text-muted">
+        <div className="ml-auto flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
           <span className="flex items-center gap-1.5">
             <CalendarDays className="size-3.5 text-sky" />
             {currentDate}

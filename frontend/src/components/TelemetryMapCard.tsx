@@ -27,7 +27,7 @@ export default function TelemetryMapCard() {
         <CardHint>{alerts ? `${alerts} need attention` : 'All sensors within range'} · live from each zone</CardHint>
       </header>
 
-      <div className="mt-4 grid grid-cols-[1fr_56px_50px_18px] items-center gap-2 border-b border-line px-2 pb-2 font-mono text-[8.5px] uppercase tracking-[0.08em] text-muted">
+      <div className="mt-4 grid grid-cols-[1fr_56px_50px_18px] items-center gap-2 border-b border-line px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
         <span>Sensor</span>
         <span>Temp</span>
         <span>RH</span>
@@ -54,7 +54,7 @@ export default function TelemetryMapCard() {
                     <span className="block truncate text-[11.5px] font-semibold text-fg" title={`${sensor.location} · ${sensor.name}`}>
                       {sensor.location} · {sensor.name}
                     </span>
-                    <span className="block font-mono text-[8.5px] text-muted">{sensor.id}</span>
+                    <span className="block font-mono text-[10px] text-muted">{sensor.id}</span>
                   </span>
                 </span>
                 <span className={`font-mono text-[11.5px] font-semibold ${warning ? 'text-warn' : 'text-fg'}`}>
@@ -72,14 +72,14 @@ export default function TelemetryMapCard() {
                     </span>
                     <p className="min-w-0">
                       <span className={`block text-[10.5px] font-semibold ${warning ? 'text-warn' : 'text-ok'}`}>{info.status}</span>
-                      <span className="block text-[9px] text-muted">{info.detail}</span>
+                      <span className="block text-[10.5px] text-muted">{info.detail}</span>
                     </p>
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-1.5">
-                    <span className="flex items-center gap-1 rounded-lg border border-line px-1.5 py-1 font-mono text-[8.5px] text-muted">
+                    <span className="flex items-center gap-1 rounded-lg border border-line px-1.5 py-1 font-mono text-[10px] text-muted">
                       <Droplets className="size-3 text-sky" /> {sensor.humidity == null ? '—' : `${Math.round(sensor.humidity)}% RH`}
                     </span>
-                    <span className="flex items-center gap-1 rounded-lg border border-line px-1.5 py-1 font-mono text-[8.5px] text-muted">
+                    <span className="flex items-center gap-1 rounded-lg border border-line px-1.5 py-1 font-mono text-[10px] text-muted">
                       <Clock3 className="size-3" /> {sensor.updated ?? 'never'}
                     </span>
                   </div>

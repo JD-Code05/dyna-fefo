@@ -25,19 +25,27 @@ export default function QueueCard({ onOpenQueue }: { onOpenQueue: () => void }) 
             </span>
             {atRiskProducts.length} require attention
           </span>
-          <p className="line-clamp-2 min-w-0 text-[10px] leading-snug text-muted">
+          <p className="line-clamp-2 min-w-0 text-[11px] leading-snug text-muted">
             Batches with a pending dispatch or salvage recommendation, ranked by remaining life.
           </p>
         </div>
       </header>
 
-      <div className="mt-3 grid grid-cols-[1fr_72px_68px] gap-2 border-b border-line px-1 pb-2 font-mono text-[9px] uppercase tracking-[0.08em] text-muted">
+      <div className="mt-3 grid grid-cols-[1fr_72px_68px] gap-2 border-b border-line px-1 pb-2 font-mono text-[10.5px] uppercase tracking-[0.08em] text-muted">
         <span>Product &amp; exposure</span>
         <span>RUL</span>
         <span className="text-right">Action</span>
       </div>
 
       <ul className="min-h-0 flex-1 divide-y divide-line overflow-y-auto overscroll-contain [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]">
+        {atRiskProducts.length === 0 && (
+          <li className="grid h-full place-items-center px-4 py-10 text-center">
+            <span>
+              <span className="block text-[12px] font-semibold text-fg">No batches need a decision</span>
+              <span className="mt-1 block text-[11px] text-muted">Batches appear here when their shelf life drops below the dispatch threshold.</span>
+            </span>
+          </li>
+        )}
         {atRiskProducts.map((batch) => {
           const salvage = batch.recommendation?.type === 'SALVAGE'
           const critical = salvage || batch.breach === 'critical'
@@ -49,9 +57,9 @@ export default function QueueCard({ onOpenQueue }: { onOpenQueue: () => void }) 
                 <div className="flex items-center gap-2">
                   <span className={`size-2 shrink-0 rounded-full ${critical ? 'bg-danger' : 'bg-warn'}`} />
                   <p className="truncate text-[11px] font-semibold text-fg">{batch.product}</p>
-                  <span className="shrink-0 font-mono text-[8px] text-muted">#{batch.id}</span>
+                  <span className="shrink-0 font-mono text-[9.5px] text-muted">#{batch.id}</span>
                 </div>
-                <p className="mt-0.5 truncate pl-4 text-[9px] text-muted">
+                <p className="mt-0.5 truncate pl-4 text-[10.5px] text-muted">
                   {batch.zone} · {batch.units} units
                 </p>
               </div>
@@ -60,14 +68,14 @@ export default function QueueCard({ onOpenQueue }: { onOpenQueue: () => void }) 
                 <p className={`font-mono text-[13px] font-bold ${critical ? 'text-danger' : 'text-warn'}`}>
                   {batch.dynamicHours}h
                 </p>
-                <p className="mt-0.5 flex items-center gap-1 font-mono text-[8px] text-muted">
+                <p className="mt-0.5 flex items-center gap-1 font-mono text-[9.5px] text-muted">
                   <Clock3 className="size-2.5" /> {loss}% life lost
                 </p>
               </div>
 
               <div className="text-right">
                 <p className={`font-mono text-[10.5px] font-semibold ${salvage ? 'text-danger' : 'text-fg'}`}>{salvage ? 'Salvage' : 'Dispatch'}</p>
-                <p className="mt-0.5 font-mono text-[8px] text-muted">pending</p>
+                <p className="mt-0.5 font-mono text-[9.5px] text-muted">pending</p>
               </div>
             </li>
           )
@@ -80,8 +88,8 @@ export default function QueueCard({ onOpenQueue }: { onOpenQueue: () => void }) 
             <AlertTriangle className="size-3.5 text-warn" strokeWidth={2} />
           </span>
           <p className="min-w-0 leading-tight">
-            <span className="block font-mono text-[9px] uppercase tracking-[0.08em] text-muted">Current exposure</span>
-            <span className="block truncate text-[10px] text-muted">
+            <span className="block font-mono text-[10.5px] uppercase tracking-[0.08em] text-muted">Current exposure</span>
+            <span className="block truncate text-[11px] text-muted">
               <span className="font-mono font-semibold text-fg">{totalUnits} units</span> awaiting a decision
             </span>
           </p>
@@ -90,7 +98,7 @@ export default function QueueCard({ onOpenQueue }: { onOpenQueue: () => void }) 
           type="button"
           onClick={onOpenQueue}
           aria-label="View risk details"
-          className="flex shrink-0 items-center gap-1 rounded-full px-2 py-1.5 text-[10px] font-semibold text-sky hover:bg-sky/10"
+          className="flex shrink-0 items-center gap-1 rounded-full px-2 py-1.5 text-[11px] font-semibold text-sky hover:bg-sky/10"
         >
           Details
           <ArrowRight className="size-3" strokeWidth={2.4} />

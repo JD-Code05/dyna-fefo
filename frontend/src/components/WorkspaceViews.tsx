@@ -43,20 +43,20 @@ export function ManagerDecisionsCard({ onOpenQueue }: { onOpenQueue: () => void 
           <CardTitle className="text-[13px]">Manager Decisions</CardTitle>
           <CardHint>{recommendations.length} awaiting supervisor approval</CardHint>
         </div>
-        <button type="button" onClick={onOpenQueue} className="text-[10px] font-semibold text-sky hover:text-fg">
+        <button type="button" onClick={onOpenQueue} className="text-[11px] font-semibold text-sky hover:text-fg">
           Review all
         </button>
       </div>
       <div className="mt-2 divide-y divide-line">
-        {top.length === 0 && <p className="py-3 text-[9.5px] text-muted">No recommendations pending.</p>}
+        {top.length === 0 && <p className="py-3 text-[11px] text-muted">No recommendations pending.</p>}
         {top.map((rec) => {
           const salvage = rec.type === 'SALVAGE'
           const pct = Math.round(Number(rec.rationale.rul_ratio ?? 0) * 100)
           const label = `${salvage ? 'Salvage' : 'Priority dispatch'} · ${pct}% shelf life left`
           return (
             <div key={rec.id} className="flex items-center gap-2 py-2">
-              <span className={`font-mono text-[9px] font-semibold ${salvage ? 'text-danger' : 'text-warn'}`}>{rec.batch_code}</span>
-              <p className="min-w-0 flex-1 truncate text-[9.5px] text-fg/80" title={label}>{label}</p>
+              <span className={`font-mono text-[10.5px] font-semibold ${salvage ? 'text-danger' : 'text-warn'}`}>{rec.batch_code}</span>
+              <p className="min-w-0 flex-1 truncate text-[11px] text-fg/80" title={label}>{label}</p>
               <button
                 type="button"
                 onClick={() => decide(rec.id, 'approve').catch((e) => setError(errorText(e)))}
@@ -69,7 +69,7 @@ export function ManagerDecisionsCard({ onOpenQueue }: { onOpenQueue: () => void 
           )
         })}
       </div>
-      {error && <p role="alert" className="mt-1 text-[9px] font-semibold text-danger">{error}</p>}
+      {error && <p role="alert" className="mt-1 text-[10.5px] font-semibold text-danger">{error}</p>}
     </section>
   )
 }
@@ -78,7 +78,7 @@ function ViewHeading({ eyebrow, title, detail }: { eyebrow: string; title: strin
   return (
     <header className="flex h-[64px] shrink-0 items-center justify-between rounded-[14px] border border-line bg-surface px-5">
       <div>
-        <p className="font-mono text-[8.5px] font-semibold uppercase tracking-[0.12em] text-sky">{eyebrow}</p>
+        <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-sky">{eyebrow}</p>
         <h2 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-fg">{title}</h2>
       </div>
       <p className="max-w-[480px] text-right text-[10.5px] leading-relaxed text-muted">{detail}</p>
@@ -125,12 +125,12 @@ function TrendCard({
           <CardHint>{hint}</CardHint>
         </div>
         <p className={`font-mono text-[18px] font-bold ${statTone}`}>
-          {stat} <span className="text-[9px] font-medium text-muted">{unit}</span>
+          {stat} <span className="text-[10.5px] font-medium text-muted">{unit}</span>
         </p>
       </div>
       <div className="relative mt-4 min-h-0 flex-1">
         {data.length < 2 ? (
-          <p className="grid h-full place-items-center text-[10px] text-muted">No readings in the last 24 hours</p>
+          <p className="grid h-full place-items-center text-[11px] text-muted">No readings in the last 24 hours</p>
         ) : (
         <svg viewBox="0 0 500 150" preserveAspectRatio="none" className="h-full w-full" role="img" aria-label={`${title} trend graph`}>
           {[24, 64, 104, 144].map((y) => (
@@ -146,7 +146,7 @@ function TrendCard({
             })}
         </svg>
         )}
-        <div className="absolute inset-x-0 bottom-0 flex justify-between px-2 font-mono text-[7.5px] uppercase text-muted">
+        <div className="absolute inset-x-0 bottom-0 flex justify-between px-2 font-mono text-[9px] uppercase text-muted">
           {labels.map((label, i) => (
             <span key={i}>{label}</span>
           ))}
@@ -171,30 +171,30 @@ function ExpirationChart() {
           <CardHint>Remaining hours by batch · shortest life first</CardHint>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex gap-3 font-mono text-[8px] text-muted">
+          <div className="flex gap-3 font-mono text-[9.5px] text-muted">
             <span className="flex items-center gap-1.5"><i className="size-2 rounded-sm bg-sky" /> Sensor RUL</span>
             <span className="flex items-center gap-1.5"><i className="hatch-danger size-2 rounded-sm" /> Life lost</span>
             <span className="flex items-center gap-1.5"><i className="size-2 rounded-sm bg-track ring-1 ring-inset ring-white/10" /> Printed</span>
           </div>
-          <span className={`rounded-full border px-2 py-1 font-mono text-[8px] font-semibold ${
+          <span className={`rounded-full border px-2 py-1 font-mono text-[9.5px] font-semibold ${
             averageGap > 12
               ? 'border-danger/25 bg-danger/10 text-danger'
               : 'border-warn/25 bg-warn/10 text-warn'
           }`}>
-            -{averageGap}h avg
+            {averageGap ? `-${averageGap}h` : '0h'} avg loss
           </span>
         </div>
       </div>
 
       <div className="mt-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-line bg-night/35">
         <div className="grid grid-cols-[92px_minmax(0,1fr)_48px] items-end gap-3 border-b border-line px-3 py-2">
-          <span className="font-mono text-[7.5px] uppercase tracking-[0.08em] text-muted">Batch</span>
-          <div className="flex justify-between font-mono text-[7px] text-muted">
+          <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-muted">Batch</span>
+          <div className="flex justify-between font-mono text-[9px] text-muted">
             {[0, 0.25, 0.5, 0.75, 1].map((step) => (
               <span key={step}>{Math.round(maxHours * step)}h</span>
             ))}
           </div>
-          <span className="text-right font-mono text-[7.5px] uppercase tracking-[0.08em] text-muted">Loss</span>
+          <span className="text-right font-mono text-[9px] uppercase tracking-[0.08em] text-muted">Loss</span>
         </div>
 
         <div className="min-h-0 flex-1 divide-y divide-line/70 overflow-y-auto overscroll-contain">
@@ -203,9 +203,9 @@ function ExpirationChart() {
             return (
               <div key={batch.key} className="grid h-[52px] grid-cols-[92px_minmax(0,1fr)_48px] items-center gap-3 px-3 hover:bg-white/[0.02]">
                 <span className="min-w-0">
-                  <strong className="block truncate text-[8.5px] text-fg">{batch.product}</strong>
-                  <small className="mt-0.5 block truncate font-mono text-[7px] text-muted">
-                    #{batch.id} · {batch.dynamicHours}h / {batch.staticHours}h
+                  <strong className="block truncate font-mono text-[10px] text-fg">{batch.id}</strong>
+                  <small className="mt-0.5 block truncate font-mono text-[9px] text-muted">
+                    {batch.dynamicHours}h / {batch.staticHours}h
                   </small>
                 </span>
 
@@ -215,7 +215,7 @@ function ExpirationChart() {
                   maxHours={maxHours}
                 />
 
-                <span className={`text-right font-mono text-[8px] font-semibold ${
+                <span className={`text-right font-mono text-[9.5px] font-semibold ${
                   gap > 12 ? 'text-danger' : gap ? 'text-warn' : 'text-ok'
                 }`}>
                   {gap ? `-${gap}h` : '0h'}
@@ -223,7 +223,7 @@ function ExpirationChart() {
               </div>
             )
           }) : (
-            <div className="grid h-full place-items-center text-[9px] text-muted">No stock data available</div>
+            <div className="grid h-full place-items-center text-[10.5px] text-muted">No stock data available</div>
           )}
         </div>
       </div>
@@ -325,7 +325,7 @@ export function StockOverviewView() {
           />
         </div>
 
-        <div className="mt-4 grid grid-cols-[1.05fr_1.2fr_0.9fr_0.8fr_0.85fr_0.65fr_70px] gap-3 border-b border-line px-3 pb-2 font-mono text-[8.5px] uppercase tracking-[0.06em] text-muted">
+        <div className="mt-4 grid grid-cols-[1.05fr_1.2fr_0.9fr_0.8fr_0.85fr_0.65fr_70px] gap-3 border-b border-line px-3 pb-2 font-mono text-[10px] uppercase tracking-[0.06em] text-muted">
           <span>Stock item</span>
           <span>Details</span>
           <span>Identification</span>
@@ -344,20 +344,19 @@ export function StockOverviewView() {
                   className="grid h-[48px] grid-cols-[1.05fr_1.2fr_0.9fr_0.8fr_0.85fr_0.65fr_70px] items-center gap-3 px-3 transition-colors hover:bg-white/[0.02]"
                 >
                   <span className="min-w-0">
-                    <strong className="block truncate text-[10px] text-fg" title={batch.product}>{batch.product}</strong>
-                    <small className="block truncate text-[7.5px] text-muted">{batch.activity.label}</small>
+                    <strong className="block truncate text-[11px] text-fg" title={batch.product}>{batch.product}</strong>
+                    <small className="block truncate text-[9px] text-muted">{batch.activity.label}</small>
                   </span>
-                  <span className="text-[9px] leading-snug text-muted">{batch.detail}</span>
+                  <span className="text-[10.5px] leading-snug text-muted">{batch.detail || '—'}</span>
                   <span>
-                    <strong className="block font-mono text-[9px] text-fg">{batch.identifier}</strong>
-                    <small className="font-mono text-[8px] text-muted">Batch {batch.id}</small>
+                    <strong className="block font-mono text-[10.5px] text-fg">{batch.identifier}</strong>
                   </span>
-                  <span className="flex items-start gap-1.5 text-[9px] leading-tight text-muted">
+                  <span className="flex items-start gap-1.5 text-[10.5px] leading-tight text-muted">
                     <MapPin className="mt-0.5 size-3 shrink-0 text-sky" />
                     {batch.zone}
                   </span>
-                  <span className="font-mono text-[9px] text-muted">{fmtDay(batch.printedExpiry)}</span>
-                  <span className="font-mono text-[10px] font-semibold text-fg">{batch.units}</span>
+                  <span className="font-mono text-[10.5px] text-muted">{fmtDay(batch.printedExpiry)}</span>
+                  <span className="font-mono text-[11px] font-semibold text-fg">{batch.units}</span>
                   <span className="flex items-center gap-1.5">
                     <button
                       type="button"
@@ -384,7 +383,7 @@ export function StockOverviewView() {
               <div>
                 <Search className="mx-auto size-6 text-muted" />
                 <p className="mt-3 text-[11px] font-semibold text-fg">No stock found</p>
-                <p className="mt-1 text-[9.5px] text-muted">Try another search term or warehouse location.</p>
+                <p className="mt-1 text-[11px] text-muted">Try another search term or warehouse location.</p>
               </div>
             </div>
           )}
@@ -453,7 +452,7 @@ function StockEditor({
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3">
           <EditField label="Batch code" value={form.identifier} onChange={(value) => setField('identifier', value)} />
-          <label className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-muted">
+          <label className="font-mono text-[10px] uppercase tracking-[0.07em] text-muted">
             Zone
             <select value={form.zone} onChange={(event) => setField('zone', event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-line bg-night px-3 font-sans text-[11px] normal-case tracking-normal text-fg outline-none focus:border-sky/50">
               {zones.map((z) => <option key={z} value={z}>{z}</option>)}
@@ -462,7 +461,7 @@ function StockEditor({
           <EditField label="Notes" value={form.detail} required={false} onChange={(value) => setField('detail', value)} />
           <EditField label="Quantity (units)" value={form.units} type="number" onChange={(value) => setField('units', value)} />
         </div>
-        {error && <p role="alert" className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-[10px] font-semibold text-danger">{error}</p>}
+        {error && <p role="alert" className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-[11px] font-semibold text-danger">{error}</p>}
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="h-10 rounded-lg border border-line px-4 text-[10.5px] font-semibold text-muted hover:text-fg">Cancel</button>
           <button type="submit" className="flex h-10 items-center gap-2 rounded-lg bg-sky px-4 text-[10.5px] font-bold text-night">
@@ -488,7 +487,7 @@ function EditField({
   required?: boolean
 }) {
   return (
-    <label className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-muted">
+    <label className="font-mono text-[10px] uppercase tracking-[0.07em] text-muted">
       {label}
       <input required={required} type={type} min={type === 'number' ? 0 : undefined} value={value} onChange={(event) => onChange(event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-line bg-night px-3 font-sans text-[11px] normal-case tracking-normal text-fg outline-none focus:border-sky/50" />
     </label>
@@ -522,7 +521,7 @@ export function SensorsView() {
         detail="Live temperature and humidity from each sensor's zone. Select a row to edit its name or zone."
       />
       <div className="grid grid-cols-4 gap-3">
-        <SensorStat label="Total sensors" value={String(sensors.length)} hint={`Across ${new Set(sensors.map((sensor) => sensor.location)).size} warehouse zones`} tone="text-fg" />
+        <SensorStat label="Total sensors" value={String(sensors.length)} hint={(() => { const n = new Set(sensors.map((sensor) => sensor.location)).size; return `Across ${n} warehouse ${n === 1 ? 'zone' : 'zones'}` })()} tone="text-fg" />
         <SensorStat label="Online" value={String(sensors.filter((sensor) => sensor.status === 'Online').length)} hint="Reporting normally" tone="text-ok" />
         <SensorStat label="No data" value={String(sensors.filter((sensor) => sensor.status === 'No data').length)} hint="Zone has no readings yet" tone="text-warn" />
         <SensorStat label="Critical" value={String(sensors.filter((sensor) => sensor.status === 'Critical').length)} hint="Above the 4°C limit" tone="text-danger" />
@@ -536,9 +535,9 @@ export function SensorsView() {
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search sensor, ID, location, or status..."
               aria-label="Search sensors"
-              className="h-full min-w-0 flex-1 bg-transparent text-[9.5px] text-fg outline-none placeholder:text-muted"
+              className="h-full min-w-0 flex-1 bg-transparent text-[11px] text-fg outline-none placeholder:text-muted"
             />
-            <span className="shrink-0 font-mono text-[7.5px] text-muted">
+            <span className="shrink-0 font-mono text-[9px] text-muted">
               {filteredSensors.length}/{sensors.length}
             </span>
             {query && (
@@ -552,7 +551,7 @@ export function SensorsView() {
               </button>
             )}
           </div>
-          <div className="grid grid-cols-[minmax(0,1fr)_30px] gap-1.5 border-b border-line px-2 pb-2 font-mono text-[8.5px] uppercase tracking-[0.06em] text-muted">
+          <div className="grid grid-cols-[minmax(0,1fr)_30px] gap-1.5 border-b border-line px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.06em] text-muted">
             <span className="grid grid-cols-[1.35fr_1fr_80px_76px_76px_82px] gap-3">
               <span>Sensor</span><span>Zone</span><span>Temp</span><span>Humidity</span><span>Updated</span><span>Status</span>
             </span>
@@ -573,13 +572,13 @@ export function SensorsView() {
                     className="grid h-full w-full grid-cols-[1.35fr_1fr_80px_76px_76px_82px] items-center gap-3 text-left"
                   >
                     <span className="flex min-w-0 items-center gap-1.5">
-                      <strong className="min-w-0 flex-1 truncate text-[9.5px] leading-none text-fg" title={sensor.name}>{sensor.name}</strong>
-                      <small className="shrink-0 rounded bg-pill px-1 py-0.5 font-mono text-[6.5px] leading-none text-muted">{sensor.id}</small>
+                      <strong className="min-w-0 flex-1 truncate text-[11px] leading-none text-fg" title={sensor.name}>{sensor.name}</strong>
+                      <small className="shrink-0 rounded bg-pill px-1 py-0.5 font-mono text-[9px] leading-none text-muted">{sensor.id}</small>
                     </span>
-                    <span className="flex items-center gap-1.5 truncate text-[9px] text-muted"><MapPin className="size-3" />{sensor.location}</span>
-                    <span className={`font-mono text-[10px] font-semibold ${sensor.status === 'Critical' ? 'text-danger' : 'text-fg'}`}>{sensor.temperature == null ? '—' : `${sensor.temperature.toFixed(1)}°C`}</span>
-                    <span className="font-mono text-[9.5px] text-fg">{sensor.humidity == null ? '—' : `${Math.round(sensor.humidity)}%`}</span>
-                    <span className="font-mono text-[9.5px] text-muted">{sensor.updated ?? 'never'}</span>
+                    <span className="flex items-center gap-1.5 truncate text-[10.5px] text-muted"><MapPin className="size-3" />{sensor.location}</span>
+                    <span className={`font-mono text-[11px] font-semibold ${sensor.status === 'Critical' ? 'text-danger' : 'text-fg'}`}>{sensor.temperature == null ? '—' : `${sensor.temperature.toFixed(1)}°C`}</span>
+                    <span className="font-mono text-[11px] text-fg">{sensor.humidity == null ? '—' : `${Math.round(sensor.humidity)}%`}</span>
+                    <span className="font-mono text-[11px] text-muted">{sensor.updated ?? 'never'}</span>
                     <Status status={sensor.status} />
                   </button>
                   <button
@@ -599,7 +598,7 @@ export function SensorsView() {
                   <p className="mt-3 text-[11px] font-semibold text-fg">
                     {query ? 'No sensors found' : 'No sensors registered'}
                   </p>
-                  <p className="mt-1 text-[9.5px] text-muted">
+                  <p className="mt-1 text-[11px] text-muted">
                     {query ? 'Try another sensor name, ID, location, or status.' : 'Add a sensor from Quick Add to begin monitoring.'}
                   </p>
                 </div>
@@ -635,16 +634,16 @@ export function SensorsView() {
 function SensorStat({ label, value, hint, tone }: { label: string; value: string; hint: string; tone: string }) {
   return (
     <div className={`${card} px-4 py-3`}>
-      <p className="font-mono text-[8px] uppercase tracking-[0.08em] text-muted">{label}</p>
+      <p className="font-mono text-[9.5px] uppercase tracking-[0.08em] text-muted">{label}</p>
       <p className={`mt-1 text-[21px] font-bold leading-none ${tone}`}>{value}</p>
-      <p className="mt-1.5 text-[9px] text-muted">{hint}</p>
+      <p className="mt-1.5 text-[10.5px] text-muted">{hint}</p>
     </div>
   )
 }
 
 function Status({ status }: { status: string }) {
   const tone = status === 'Critical' ? 'bg-danger/10 text-danger border-danger/25' : status === 'No data' ? 'bg-warn/10 text-warn border-warn/25' : 'bg-ok/10 text-ok border-ok/25'
-  return <span className={`w-fit rounded-full border px-1.5 py-0.5 font-mono text-[7.5px] font-semibold ${tone}`}>{status}</span>
+  return <span className={`w-fit rounded-full border px-1.5 py-0.5 font-mono text-[9px] font-semibold ${tone}`}>{status}</span>
 }
 
 function SensorEditor({
@@ -677,11 +676,11 @@ function SensorEditor({
         <div><CardTitle className="text-[13px]">Sensor Details</CardTitle><CardHint>{sensor.id} · device ID cannot change</CardHint></div>
         <Pencil className="size-4 text-sky" />
       </div>
-      <label className="mt-5 font-mono text-[8.5px] uppercase tracking-[0.08em] text-muted">
+      <label className="mt-5 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
         Sensor name
         <input value={form.name} onChange={(event) => setField('name', event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-line bg-night px-3 font-sans text-[11px] normal-case tracking-normal text-fg outline-none focus:border-sky/50" />
       </label>
-      <label className="mt-4 font-mono text-[8.5px] uppercase tracking-[0.08em] text-muted">
+      <label className="mt-4 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
         Zone
         <select value={form.location} onChange={(event) => setField('location', event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-line bg-night px-3 font-sans text-[11px] normal-case tracking-normal text-fg outline-none focus:border-sky/50">
           {zones.map((z) => <option key={z} value={z}>{z}</option>)}
@@ -693,10 +692,10 @@ function SensorEditor({
         <Detail icon={Droplets} label="Humidity" value={sensor.humidity == null ? '—' : `${Math.round(sensor.humidity)}% RH`} />
       </div>
       <div className="mt-auto rounded-lg border border-line bg-night/50 p-3">
-        <p className="font-mono text-[8px] uppercase tracking-[0.08em] text-muted">Current status</p>
-        <div className="mt-2 flex items-center justify-between"><Status status={sensor.status} /><span className="font-mono text-[8px] text-muted">Updated {sensor.updated ?? 'never'}</span></div>
+        <p className="font-mono text-[9.5px] uppercase tracking-[0.08em] text-muted">Current status</p>
+        <div className="mt-2 flex items-center justify-between"><Status status={sensor.status} /><span className="font-mono text-[9.5px] text-muted">Updated {sensor.updated ?? 'never'}</span></div>
       </div>
-      {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-[10px] font-semibold text-danger">{error}</p>}
+      {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-[11px] font-semibold text-danger">{error}</p>}
       <button type="button" onClick={save} className="mt-3 flex h-10 items-center justify-center gap-2 rounded-lg bg-sky text-[10.5px] font-bold text-night hover:brightness-105">
         {saved ? <Check className="size-4" /> : <Save className="size-4" />}{saved ? 'Changes saved' : 'Save sensor'}
       </button>
@@ -711,7 +710,7 @@ function RealtimeSensorGraph({ sensor }: { sensor: SensorRecord }) {
   const temperatureReadings = zonePoints.map((p) => p.temperature_c)
   const humidityReadings = zonePoints.map((p) => p.humidity_pct)
   if (zonePoints.length < 2) {
-    return <p className="mt-4 rounded-xl border border-line bg-night/60 p-3 text-[9px] text-muted">No readings from {sensor.location} in the last 24 hours.</p>
+    return <p className="mt-4 rounded-xl border border-line bg-night/60 p-3 text-[10.5px] text-muted">No readings from {sensor.location} in the last 24 hours.</p>
   }
 
   const readings = metric === 'temperature' ? temperatureReadings : humidityReadings
@@ -741,7 +740,7 @@ function RealtimeSensorGraph({ sensor }: { sensor: SensorRecord }) {
                 key={option}
                 type="button"
                 onClick={() => setMetric(option)}
-                className={`rounded px-2 py-1 font-mono text-[7.5px] font-semibold uppercase ${
+                className={`rounded px-2 py-1 font-mono text-[9px] font-semibold uppercase ${
                   metric === option ? 'bg-pill text-fg' : 'text-muted hover:text-fg'
                 }`}
               >
@@ -749,7 +748,7 @@ function RealtimeSensorGraph({ sensor }: { sensor: SensorRecord }) {
               </button>
             ))}
           </div>
-          <span className="mt-1.5 block text-[8px] text-muted">{sensor.location} · last 24 hours</span>
+          <span className="mt-1.5 block text-[9.5px] text-muted">{sensor.location} · last 24 hours</span>
         </div>
         <span className={`flex items-center gap-1.5 font-mono text-[13px] font-bold ${warning ? 'text-danger' : 'text-ok'}`}>
           <span className={`relative size-1.5 rounded-full ${warning ? 'bg-danger' : 'bg-ok'}`}>
@@ -766,7 +765,7 @@ function RealtimeSensorGraph({ sensor }: { sensor: SensorRecord }) {
         <polygon points={`8,62 ${points} 252,62`} fill={graphColor} opacity="0.08" />
         <polyline points={points} fill="none" stroke={graphColor} strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" />
         <circle cx="252" cy={y(latest)} r="3" fill={graphColor} />
-        <text x="250" y={Math.max(8, y(limit) - 4)} textAnchor="end" className="fill-danger font-mono text-[7px]">
+        <text x="250" y={Math.max(8, y(limit) - 4)} textAnchor="end" className="fill-danger font-mono text-[9px]">
           {metric === 'temperature' ? '4°C LIMIT' : '90% LIMIT'}
         </text>
       </svg>
@@ -775,7 +774,7 @@ function RealtimeSensorGraph({ sensor }: { sensor: SensorRecord }) {
 }
 
 function Detail({ icon: Icon, label, value }: { icon: typeof Thermometer; label: string; value: string }) {
-  return <div className="rounded-lg border border-line p-2.5"><Icon className="size-3.5 text-muted" /><p className="mt-2 font-mono text-[7.5px] uppercase text-muted">{label}</p><p className="mt-1 font-mono text-[10px] font-semibold text-fg">{value}</p></div>
+  return <div className="rounded-lg border border-line p-2.5"><Icon className="size-3.5 text-muted" /><p className="mt-2 font-mono text-[9px] uppercase text-muted">{label}</p><p className="mt-1 font-mono text-[11px] font-semibold text-fg">{value}</p></div>
 }
 
 type DecisionFilter = 'all' | 'priority' | 'risk'
@@ -793,16 +792,16 @@ export function DecisionsView({ onOpenQueue }: { onOpenQueue: () => void }) {
         <div className="flex items-center">
           <div className="flex rounded-lg border border-line bg-night p-1">
             {(['all', 'priority', 'risk'] as const).map((key) => (
-              <button key={key} type="button" onClick={() => setFilter(key)} className={`flex h-8 items-center gap-2 rounded-md px-3 text-[9.5px] font-semibold capitalize ${filter === key ? 'bg-pill text-fg' : 'text-muted hover:text-fg'}`}>
-                {key === 'risk' ? 'Temp breach' : key === 'priority' ? 'Pending decision' : key}<span className={`rounded px-1.5 py-0.5 font-mono text-[8px] ${filter === key ? 'bg-sky/15 text-sky' : 'bg-white/[0.04]'}`}>{counts[key]}</span>
+              <button key={key} type="button" onClick={() => setFilter(key)} className={`flex h-8 items-center gap-2 rounded-md px-3 text-[11px] font-semibold capitalize ${filter === key ? 'bg-pill text-fg' : 'text-muted hover:text-fg'}`}>
+                {key === 'risk' ? 'Temp breach' : key === 'priority' ? 'Pending decision' : key}<span className={`rounded px-1.5 py-0.5 font-mono text-[9.5px] ${filter === key ? 'bg-sky/15 text-sky' : 'bg-white/[0.04]'}`}>{counts[key]}</span>
               </button>
             ))}
           </div>
-          <button type="button" onClick={onOpenQueue} className="ml-auto flex h-9 items-center gap-2 rounded-lg bg-sky px-4 text-[10px] font-bold text-night hover:brightness-105">
+          <button type="button" onClick={onOpenQueue} className="ml-auto flex h-9 items-center gap-2 rounded-lg bg-sky px-4 text-[11px] font-bold text-night hover:brightness-105">
             Open decision board <ArrowRight className="size-3.5" />
           </button>
         </div>
-        <div className="mt-4 grid grid-cols-[1.2fr_0.8fr_1fr_1fr_90px_1.2fr] gap-3 border-b border-line px-3 pb-2 font-mono text-[8.5px] uppercase tracking-[0.06em] text-muted">
+        <div className="mt-4 grid grid-cols-[1.2fr_0.8fr_1fr_1fr_90px_1.2fr] gap-3 border-b border-line px-3 pb-2 font-mono text-[10px] uppercase tracking-[0.06em] text-muted">
           <span>Product</span><span>Location</span><span>Printed expiration</span><span>Estimated expiration</span><span>RUL</span><span>Decision status</span>
         </div>
         <div className="min-h-0 flex-1 divide-y divide-line overflow-y-auto">
@@ -818,12 +817,12 @@ function ProductRow({ batch }: { batch: StockRecord }) {
   const critical = batch.breach === 'critical'
   return (
     <div className="grid h-[72px] grid-cols-[1.2fr_0.8fr_1fr_1fr_90px_1.2fr] items-center gap-3 px-3 hover:bg-white/[0.02]">
-      <span><strong className="block text-[11px] text-fg">{batch.product}</strong><small className="font-mono text-[8.5px] text-muted">{batch.id} · {batch.units} units</small></span>
-      <span className="text-[9.5px] text-muted">{batch.zone}</span>
-      <span className="font-mono text-[9.5px] text-muted">{fmtDate(batch.printedExpiry)}</span>
-      <span className={`font-mono text-[9.5px] font-semibold ${batch.breach ? 'text-warn' : 'text-fg'}`}>{fmtDate(batch.predictedExpiry)}<small className="mt-1 block text-[8px] font-normal text-danger">{lost > 4 ? `${lost}h earlier` : 'On track'}</small></span>
+      <span><strong className="block text-[11px] text-fg">{batch.product}</strong><small className="font-mono text-[10px] text-muted">{batch.id} · {batch.units} units</small></span>
+      <span className="text-[11px] text-muted">{batch.zone}</span>
+      <span className="font-mono text-[11px] text-muted">{fmtDate(batch.printedExpiry)}</span>
+      <span className={`font-mono text-[11px] font-semibold ${batch.breach ? 'text-warn' : 'text-fg'}`}>{fmtDate(batch.predictedExpiry)}<small className="mt-1 block text-[9.5px] font-normal text-danger">{lost > 4 ? `${lost}h earlier` : 'On track'}</small></span>
       <span className={`font-mono text-[13px] font-bold ${critical ? 'text-danger' : batch.breach ? 'text-warn' : 'text-ok'}`}>{batch.dynamicHours}h</span>
-      <span className="flex items-center gap-2"><span className={`grid size-7 place-items-center rounded-lg ${batch.action === 'dispatch' ? 'bg-sky/10 text-sky' : batch.action === 'audit' ? 'bg-danger/10 text-danger' : 'bg-warn/10 text-warn'}`}>{batch.action === 'dispatch' ? <Truck className="size-3.5" /> : batch.action === 'audit' ? <AlertTriangle className="size-3.5" /> : <Clock3 className="size-3.5" />}</span><span className="text-[9px] leading-tight text-fg/80">{batch.rec}</span></span>
+      <span className="flex items-center gap-2"><span className={`grid size-7 place-items-center rounded-lg ${batch.action === 'dispatch' ? 'bg-sky/10 text-sky' : batch.action === 'audit' ? 'bg-danger/10 text-danger' : 'bg-ok/10 text-ok'}`}>{batch.action === 'dispatch' ? <Truck className="size-3.5" /> : batch.action === 'audit' ? <AlertTriangle className="size-3.5" /> : <Check className="size-3.5" />}</span><span className="text-[10.5px] leading-tight text-fg/80">{batch.rec}</span></span>
     </div>
   )
 }
@@ -837,9 +836,21 @@ const actionTone: Record<string, string> = {
   reject: 'bg-warn/10 text-warn',
 }
 const changeSummary = (row: AuditRow) => {
-  const fields = Object.keys({ ...(row.before ?? {}), ...(row.after ?? {}) }).filter((k) => !['id', 'created_at', 'updated_at', 'deleted_at'].includes(k))
-  if (row.action !== 'update') return fields.length ? `${fields.length} fields` : ''
-  return fields.map((k) => `${k}: ${String(row.before?.[k] ?? '—')} → ${String(row.after?.[k] ?? '—')}`).join(' · ')
+  const rec = (row.after ?? row.before ?? {}) as Record<string, unknown>
+  const name = rec.code ?? rec.name ?? rec.id
+  switch (row.action) {
+    case 'create':
+      return `Added ${name}${rec.zone_id ? ` in ${rec.zone_id}` : ''}`
+    case 'delete':
+      return `Removed ${name}`
+    case 'approve':
+    case 'reject':
+      return `${row.action === 'approve' ? 'Approved' : 'Rejected'} ${String(rec.type ?? '').replace('_', ' ').toLowerCase()} for batch #${rec.batch_id}${rec.decision_note ? ` · “${rec.decision_note}”` : ''}`
+    default: {
+      const fields = Object.keys({ ...(row.before ?? {}), ...(row.after ?? {}) })
+      return fields.map((k) => `${k}: ${String(row.before?.[k] ?? '—')} → ${String(row.after?.[k] ?? '—')}`).join(' · ')
+    }
+  }
 }
 
 export function HistoryView() {
@@ -861,10 +872,10 @@ export function HistoryView() {
       <section className={`${card} flex min-h-0 flex-1 flex-col overflow-hidden p-5`}>
         <div className="flex items-center gap-3">
           <Dropdown label="Filter by record type" value={entity} options={['All', 'Batch', 'Device', 'Recommendation']} onChange={setEntity} />
-          <span className="font-mono text-[9px] text-muted">{rows.length} changes</span>
+          <span className="font-mono text-[10.5px] text-muted">{rows.length} changes</span>
         </div>
-        {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-[10px] font-semibold text-danger">{error}</p>}
-        <div className="mt-4 grid grid-cols-[120px_90px_150px_120px_minmax(0,1fr)] gap-3 border-b border-line px-3 pb-2 font-mono text-[8.5px] uppercase tracking-[0.06em] text-muted">
+        {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-[11px] font-semibold text-danger">{error}</p>}
+        <div className="mt-4 grid grid-cols-[120px_90px_210px_130px_minmax(0,1fr)] gap-3 border-b border-line px-3 pb-2 font-mono text-[10px] uppercase tracking-[0.06em] text-muted">
           <span>When</span><span>Action</span><span>Record</span><span>By</span><span>Change</span>
         </div>
         <div className="min-h-0 flex-1 divide-y divide-line overflow-y-auto">
@@ -873,17 +884,17 @@ export function HistoryView() {
               <div>
                 <History className="mx-auto size-6 text-muted" />
                 <p className="mt-3 text-[11px] font-semibold text-fg">No changes yet</p>
-                <p className="mt-1 text-[9.5px] text-muted">Edits, deletes and decisions will appear here.</p>
+                <p className="mt-1 text-[11px] text-muted">Edits, deletes and decisions will appear here.</p>
               </div>
             </div>
           )}
           {rows.map((row) => (
-            <div key={row.id} className="grid min-h-[44px] grid-cols-[120px_90px_150px_120px_minmax(0,1fr)] items-center gap-3 px-3 py-2">
-              <span className="font-mono text-[9.5px] text-muted">{fmtDate(row.ts)}</span>
-              <span className={`w-fit rounded-full px-2 py-0.5 font-mono text-[9px] font-semibold capitalize ${actionTone[row.action] ?? 'text-muted'}`}>{row.action}</span>
-              <span className="text-[10px] text-fg"><span className="capitalize">{row.entity}</span> <span className="font-mono text-muted">#{row.entity_id}</span></span>
-              <span className="font-mono text-[9.5px] text-muted">{row.user}</span>
-              <span className="break-words text-[9.5px] text-fg/80">{changeSummary(row)}</span>
+            <div key={row.id} className="grid min-h-[44px] grid-cols-[120px_90px_210px_130px_minmax(0,1fr)] items-center gap-3 px-3 py-2">
+              <span className="font-mono text-[11px] text-muted">{fmtDate(row.ts)}</span>
+              <span className={`w-fit rounded-full px-2 py-0.5 font-mono text-[10.5px] font-semibold capitalize ${actionTone[row.action] ?? 'text-muted'}`}>{row.action}</span>
+              <span className="text-[11px] text-fg"><span className="capitalize">{row.entity}</span> <span className="font-mono text-muted">#{row.entity_id}</span></span>
+              <span className="font-mono text-[11px] text-muted">{row.user}</span>
+              <span className="break-words text-[11px] text-fg/80">{changeSummary(row)}</span>
             </div>
           ))}
         </div>
