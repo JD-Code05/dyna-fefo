@@ -7,7 +7,15 @@ from sqlalchemy.orm import Session
 
 from app.core.deps import get_live
 from app.core.errors import ApiError
-from app.db.models import AuditAction, AuditEntity, Batch, BatchState, Product, User, Zone
+from app.db.models import (
+    AuditAction,
+    AuditEntity,
+    Batch,
+    BatchState,
+    Product,
+    User,
+    Zone,
+)
 from app.schemas.batches import BatchCreate, BatchOut, BatchUpdate
 from app.services.audit import changed, record, snapshot
 

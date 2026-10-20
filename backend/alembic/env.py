@@ -1,6 +1,6 @@
-from alembic import context
 from sqlalchemy import create_engine
 
+from alembic import context
 from app.core.config import get_settings
 
 # conftest may override sqlalchemy.url to target the test DB

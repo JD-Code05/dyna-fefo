@@ -1,6 +1,6 @@
 import logging
-from datetime import UTC, datetime
 import threading
+from datetime import UTC, datetime
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 

@@ -1,5 +1,5 @@
 import hashlib
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -28,7 +28,7 @@ def seed(db: Session) -> None:
     for id_, name, zone, key in DEVICES:
         if not db.get(Device, id_):
             db.add(Device(id=id_, name=name, zone_id=zone, api_key_hash=hashlib.sha256(key.encode()).hexdigest()))
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     for code, zone, age_h, qty in BATCHES:
         if not db.scalar(select(Batch).where(Batch.code == code, Batch.deleted_at.is_(None))):
             rec = now - timedelta(hours=age_h)

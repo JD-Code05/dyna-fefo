@@ -1,10 +1,10 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from app.engine.rul import Reading, RulParams, compute_rul, rate
 
-T0 = datetime(2026, 10, 20, tzinfo=timezone.utc)
+T0 = datetime(2026, 10, 20, tzinfo=UTC)
 P = RulParams(shelf_life_ref_hours=240, t_ref_c=4, q10=2.5)
 
 
