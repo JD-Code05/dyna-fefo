@@ -77,3 +77,11 @@ def test_concurrent_duplicate_returns_false(db, seeded, monkeypatch):
     # simulate losing the race: existence check sees nothing, insert hits the PK
     monkeypatch.setattr(db, "scalar", lambda *a, **k: 0)
     assert ingest(db, d, None) is False
+
+
+def test_history_default_to_follows_sim_clock(client, seeded, monkeypatch):
+    from app.core.config import get_settings
+    monkeypatch.setattr(get_settings(), "sim_mode", True)
+    client.post("/api/v1/telemetry", json=payload(seq=1, ts=iso(NOW + timedelta(hours=2))), headers=H)
+    r = client.get("/api/v1/telemetry", params={"zone_id": "chiller-a"})
+    assert len(r.json()["points"]) == 1
