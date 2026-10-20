@@ -17,7 +17,7 @@ def health(db: Session = Depends(get_db)):
     try:
         db.execute(text("SELECT 1"))
         db_ok = True
-    except Exception:
+    except Exception:  # noqa: BLE001 - any DB failure must report as down
         db_ok = False
     try:
         socket.create_connection((s.mqtt_host, s.mqtt_port), timeout=1).close()

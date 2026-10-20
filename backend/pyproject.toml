@@ -22,5 +22,5 @@ testpaths = ["tests"]
 pythonpath = ["tests"]
 
 [tool.ruff.lint]
-# B008: FastAPI Depends() idiom; EXE002: bind-mount file modes on Windows
-ignore = ["B008", "EXE002"]
+# B008: FastAPI Depends() idiom; EXE002: bind-mount file modes on Windows; UP046: keep pydantic Generic[T] style
+ignore = ["B008", "EXE002", "UP046"]
