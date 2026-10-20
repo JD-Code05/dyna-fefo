@@ -80,3 +80,10 @@ def test_require_role_forbids_staff():
     with pytest.raises(ApiError) as e:
         require_role(Role.supervisor)(User(username="x", role="staff"))
     assert e.value.status == 403
+
+
+def test_no_duplicate_routes():
+    from app.main import create_app
+    # this FastAPI wraps each include_router() in an _IncludedRouter; the same router twice duplicates its routes
+    routers = [id(r.original_router) for r in create_app().routes if hasattr(r, "original_router")]
+    assert routers and len(routers) == len(set(routers))

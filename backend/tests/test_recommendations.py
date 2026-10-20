@@ -37,8 +37,3 @@ def test_deleted_batch_rec_hidden_and_404(client, aged_batch_with_rec):
     client.delete(f"/api/v1/batches/{batch_id}")
     assert rec_id not in [r["id"] for r in client.get("/api/v1/recommendations").json()["items"]]
     assert client.post(f"/api/v1/recommendations/{rec_id}/decision", json={"decision": "approve"}).status_code == 404
-
-
-def test_openapi_operation_ids_unique(client):
-    ids = [op["operationId"] for item in client.get("/openapi.json").json()["paths"].values() for op in item.values()]
-    assert len(ids) == len(set(ids))
