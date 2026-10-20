@@ -59,3 +59,12 @@ def test_rul_endpoint(client, db, seeded, products):
     assert r["batch_id"] == b.id and r["current"]["rul_h"] is not None
     assert len(r["history"]) == 1 and set(r["history"][0]) == {"computed_at", "rul_h", "rul_ratio"}
     assert client.get("/api/v1/batches/9999/rul").json()["error"]["code"] == "batch_not_found"
+
+
+def test_unknown_product_skipped_others_computed(db, seeded, products):
+    from app.db.models import Product
+    db.merge(Product(**{**products["chicken-breast"].model_dump(), "id": "fish"}))
+    db.query(Batch).filter_by(code="CHK-004").one().product_id = "fish"
+    db.commit()
+    states = recompute_all(db, products, NOW)
+    assert len(states) == 3 and db.query(BatchState).count() == 3

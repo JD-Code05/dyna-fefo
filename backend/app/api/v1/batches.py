@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.deps import get_current_user, get_db, require_role
 from app.core.errors import ApiError
 from app.db.models import Batch, BatchState, BatchStateHistory, BatchStatus, Role, User
-from app.schemas.batches import BatchCreate, BatchOut, BatchUpdate
+from app.schemas.batches import BatchCreate, BatchOut, BatchRulOut, BatchUpdate
 from app.schemas.common import Page, PageParams
 from app.services import batches as svc
 
@@ -34,7 +34,7 @@ def get_batch(batch_id: int, include_deleted: bool = False, db: Session = Depend
     return svc.to_out(*row)
 
 
-@router.get("/batches/{batch_id}/rul")
+@router.get("/batches/{batch_id}/rul", response_model=BatchRulOut)
 def get_batch_rul(batch_id: int, include_deleted: bool = False, db: Session = Depends(get_db)):
     batch = db.get(Batch, batch_id)
     if batch is None or (batch.deleted_at is not None and not include_deleted):

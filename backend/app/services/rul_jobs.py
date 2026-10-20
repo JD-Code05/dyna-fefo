@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime
 
 from sqlalchemy import func, select
@@ -7,6 +8,8 @@ from app.core.config import get_settings
 from app.core.products import ProductConfig
 from app.db.models import Batch, BatchState, BatchStateHistory, BatchStatus, Telemetry
 from app.engine.rul import Reading, RulParams, compute_rul
+
+log = logging.getLogger(__name__)
 
 
 def params_for(cfg: ProductConfig) -> RulParams:
@@ -24,6 +27,7 @@ def recompute_batch(db: Session, batch: Batch, cfg: ProductConfig, now: datetime
     state.effective_age_h, state.rul_h, state.rul_ratio = res.effective_age_h, res.rul_h, res.rul_ratio
     state.last_telemetry_ts, state.predicted_expiry, state.computed_at = res.last_ts, res.predicted_expiry, wall
     db.add(state)
+    # shortcut: a history row per batch per run, no retention; prune or downsample if the worker runs for days
     db.add(BatchStateHistory(batch_id=batch.id, computed_at=wall, rul_h=res.rul_h,
                              rul_ratio=res.rul_ratio, effective_age_h=res.effective_age_h))
     db.flush()
@@ -41,8 +45,17 @@ def recompute_all(db: Session, products: dict[str, ProductConfig], now: datetime
             # In sim mode the clock is the zone's latest reading (SIM_SPEEDUP); else wall clock.
             latest = db.scalar(select(func.max(Telemetry.ts)).where(Telemetry.zone_id == b.zone_id)) if sim else None
             t = latest or datetime.now(UTC)
-        state = recompute_batch(db, b, products[b.product_id], t)
+        cfg = products.get(b.product_id)
+        if cfg is None:
+            log.warning("batch %s: unknown product %r, skipped", b.id, b.product_id)
+            continue
+        try:
+            with db.begin_nested():  # savepoint: a failing batch leaves no partial rows
+                state = recompute_batch(db, b, cfg, t)
+                # Task 8: refresh_for_batch(db, b, state, cfg) goes here.
+        except Exception:
+            log.exception("batch %s: recompute failed, skipped", b.id)
+            continue
         states.append(state)
-        # Task 8: refresh_for_batch(db, b, state, products[b.product_id]) goes here.
     db.commit()
     return states

@@ -52,3 +52,22 @@ class BatchOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None
+
+
+class RulCurrent(BaseModel):
+    rul_h: float
+    rul_ratio: float
+    effective_age_h: float
+    predicted_expiry: datetime | None
+
+
+class RulHistoryPoint(BaseModel):
+    computed_at: datetime
+    rul_h: float
+    rul_ratio: float
+
+
+class BatchRulOut(BaseModel):
+    batch_id: int
+    current: RulCurrent | None
+    history: list[RulHistoryPoint]
