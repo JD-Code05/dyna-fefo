@@ -134,7 +134,7 @@ function TrendCard({
         ) : (
         <svg viewBox="0 0 500 150" preserveAspectRatio="none" className="h-full w-full" role="img" aria-label={`${title} trend graph`}>
           {[24, 64, 104, 144].map((y) => (
-            <line key={y} x1="0" y1={y} x2="500" y2={y} stroke="#262830" strokeWidth="1" />
+            <line key={y} x1="0" y1={y} x2="500" y2={y} stroke="var(--color-line)" strokeWidth="1" />
           ))}
           <polygon points={`18,132 ${linePoints(data)} 482,132`} fill={stroke} fillOpacity="0.08" />
           <polyline points={linePoints(data)} fill="none" stroke={stroke} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
@@ -142,7 +142,7 @@ function TrendCard({
             .split(' ')
             .map((point, index) => {
               const [cx, cy] = point.split(',')
-              return <circle key={index} cx={cx} cy={cy} r="3" fill="#18191E" stroke={stroke} strokeWidth="2" />
+              return <circle key={index} cx={cx} cy={cy} r="3" fill="var(--color-surface)" stroke={stroke} strokeWidth="2" />
             })}
         </svg>
         )}
@@ -165,21 +165,23 @@ function ExpirationChart() {
     : 0
   return (
     <section className={`${card} flex h-full min-h-0 flex-col overflow-hidden p-5`}>
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <div>
           <CardTitle className="text-[13px]">Estimated vs Printed Expiration</CardTitle>
           <CardHint>Remaining hours by batch · shortest life first</CardHint>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex gap-3 font-mono text-[9.5px] text-muted">
+          <div className="flex gap-3 whitespace-nowrap font-mono text-[9.5px] text-muted">
             <span className="flex items-center gap-1.5"><i className="size-2 rounded-sm bg-sky" /> Sensor RUL</span>
             <span className="flex items-center gap-1.5"><i className="hatch-danger size-2 rounded-sm" /> Life lost</span>
             <span className="flex items-center gap-1.5"><i className="size-2 rounded-sm bg-track ring-1 ring-inset ring-white/10" /> Printed</span>
           </div>
-          <span className={`rounded-full border px-2 py-1 font-mono text-[9.5px] font-semibold ${
+          <span className={`shrink-0 whitespace-nowrap rounded-full border px-2 py-1 font-mono text-[9.5px] font-semibold ${
             averageGap > 12
               ? 'border-danger/25 bg-danger/10 text-danger'
-              : 'border-warn/25 bg-warn/10 text-warn'
+              : averageGap
+                ? 'border-warn/25 bg-warn/10 text-warn'
+                : 'border-ok/25 bg-ok/10 text-ok'
           }`}>
             {averageGap ? `-${averageGap}h` : '0h'} avg loss
           </span>

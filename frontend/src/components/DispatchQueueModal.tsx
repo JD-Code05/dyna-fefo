@@ -485,7 +485,7 @@ function Sparkline({ batch }: { batch: StockRecord }) {
       <line x1="0" x2={W} y1={y(LIMIT)} y2={y(LIMIT)} stroke="#fff" strokeOpacity="0.25" strokeDasharray="2 2" />
       <path d={`${d} L ${W} ${H} L 0 ${H} Z`} fill={color} fillOpacity="0.12" />
       <path d={d} fill="none" stroke={color} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx={x(peakIdx)} cy={y(series[peakIdx])} r="2.6" fill={color} stroke="#18191E" strokeWidth="1.2" />
+      <circle cx={x(peakIdx)} cy={y(series[peakIdx])} r="2.6" fill={color} stroke="var(--color-surface)" strokeWidth="1.2" />
     </svg>
   )
 }
