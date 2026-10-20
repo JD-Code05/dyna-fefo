@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class DeviceCreate(BaseModel):
@@ -13,6 +13,13 @@ class DeviceUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: str | None = None
     zone_id: str | None = None
+
+    @model_validator(mode="after")
+    def _no_explicit_null(self):
+        for f in self.model_fields_set:
+            if getattr(self, f) is None:
+                raise ValueError(f"{f} cannot be null")
+        return self
 
 
 class DeviceOut(BaseModel):

@@ -39,3 +39,8 @@ def test_duplicate_id_and_unknown_zone(client, seeded):
     assert (r.status_code, r.json()["error"]["code"]) == (409, "device_id_taken")
     r = client.post("/api/v1/devices", json={**body, "id": "new-dev", "zone_id": "nope"})
     assert (r.status_code, r.json()["error"]["code"]) == (422, "unknown_zone")
+
+
+def test_patch_explicit_null_rejected(client, seeded):
+    for body in ({"name": None}, {"zone_id": None}):
+        assert client.patch("/api/v1/devices/esp32-chiller-01", json=body).status_code == 422
