@@ -1,0 +1,213 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+
+  --color-canvas: #141518;
+  --color-ink: #141518;
+  --color-dock: #1e1f24;
+  --color-panel: #222328;
+  --color-panel-2: #2d2e35;
+  --color-coral: #ff6b55;
+  --color-ice: #aee6e6;
+  --color-sage: #d4e2d4;
+  --color-amber: #f9d074;
+  --color-peri: #7371fc;
+  --color-live: #3ddc84;
+
+  /* Enterprise desktop theme: one neutral surface, accents reserved for data and status. */
+  --color-night: #0f1014;
+  --color-surface: #18191e;
+  --color-raised: #1d1e24;
+  --color-line: #262830;
+  --color-track: #22242b;
+  --color-pill: #242630;
+  --color-fg: #f4f5f7;
+  --color-muted: #8e929e;
+  --color-sky: #38bdf8;
+  --color-danger: #ff5c5c;
+  --color-warn: #f5a623;
+  --color-ok: #10b981;
+  --color-violet: #a78bfa;
+}
+
+html,
+body {
+  background: var(--color-canvas);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.theme-light {
+  --color-night: #ffffff;
+  --color-surface: #f2f4f7;
+  --color-raised: #e9edf2;
+  --color-line: #d3d9e2;
+  --color-track: #dfe4eb;
+  --color-pill: #e4e8ee;
+  --color-fg: #172033;
+  --color-muted: #667085;
+  --color-sky: #0284c7;
+  --color-danger: #dc3f3f;
+  --color-warn: #c77808;
+  --color-ok: #07845f;
+  --color-violet: #7c5bd4;
+  color-scheme: light;
+}
+
+/* Existing translucent dark-theme utilities need an ink tint on light surfaces. */
+.theme-light [class*='bg-white/'] {
+  background-color: rgb(23 32 51 / 0.04);
+}
+
+.theme-light [class*='border-white/'] {
+  border-color: rgb(23 32 51 / 0.14);
+}
+
+.theme-light [class*='text-white/'] {
+  color: rgb(23 32 51 / 0.7);
+}
+
+.theme-light [class*='ring-white/'] {
+  --tw-ring-color: rgb(23 32 51 / 0.14);
+}
+
+.hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgb(20 21 24 / 0.32) 0 1.5px,
+    transparent 1.5px 6px
+  );
+}
+
+.hatch-dark {
+  background-image: repeating-linear-gradient(
+    135deg,
+    #141518 0 2px,
+    rgb(20 21 24 / 0.2) 2px 6px
+  );
+}
+
+.hatch-coral {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgb(255 107 85 / 0.75) 0 2px,
+    rgb(255 107 85 / 0.12) 2px 5px
+  );
+}
+
+.hatch-amber {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgb(249 208 116 / 0.7) 0 2px,
+    rgb(249 208 116 / 0.1) 2px 5px
+  );
+}
+
+.hatch-muted {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgb(255 255 255 / 0.3) 0 2px,
+    rgb(255 255 255 / 0.05) 2px 5px
+  );
+}
+
+.hatch-danger {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgb(255 92 92 / 0.85) 0 1.5px,
+    rgb(255 92 92 / 0.1) 1.5px 5px
+  );
+}
+
+.theme-light .hatch-danger {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgb(220 63 63 / 0.7) 0 1.5px,
+    rgb(220 63 63 / 0.08) 1.5px 5px
+  );
+}
+
+.hatch-warn {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgb(245 166 35 / 0.8) 0 1.5px,
+    rgb(245 166 35 / 0.08) 1.5px 5px
+  );
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.dashboard-scrollbars *:not(.no-scrollbar) {
+  scrollbar-color: var(--color-line) transparent;
+  scrollbar-width: thin;
+}
+
+.dashboard-scrollbars *:not(.no-scrollbar)::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.dashboard-scrollbars *:not(.no-scrollbar)::-webkit-scrollbar-track,
+.dashboard-scrollbars *:not(.no-scrollbar)::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.dashboard-scrollbars *:not(.no-scrollbar)::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 999px;
+}
+
+.dashboard-scrollbars *:not(.no-scrollbar)::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted);
+}
+
+@keyframes ping-soft {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  80%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+.ping-soft {
+  animation: ping-soft 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise-in {
+  animation: rise-in 0.35s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ping-soft,
+  .rise-in {
+    animation: none;
+  }
+}
