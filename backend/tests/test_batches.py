@@ -72,3 +72,17 @@ def test_deleted_batch_hidden_and_404(client, seeded):
     assert client.patch("/api/v1/batches/1", json={"quantity": 1}).status_code == 404
     log = client.get("/api/v1/audit-log?entity=batch&action=delete").json()["items"][0]
     assert log["after"] is None and log["before"]["code"] == "CHK-001"
+
+
+def test_naive_datetimes_rejected_422(client, seeded):
+    r = client.post("/api/v1/batches", json=NEW | {"printed_expiry": "2026-10-30T00:00:00"})
+    assert (r.status_code, r.json()["error"]["code"]) == (422, "validation_error")
+    assert client.patch("/api/v1/batches/1", json={"received_at": "2026-10-01T00:00:00"}).status_code == 422
+
+
+def test_same_instant_other_timezone_is_noop(client, seeded):
+    from datetime import datetime, timedelta, timezone
+    cur = client.get("/api/v1/batches/1").json()["received_at"]
+    other = datetime.fromisoformat(cur).astimezone(timezone(timedelta(hours=2))).isoformat()
+    client.patch("/api/v1/batches/1", json={"received_at": other})
+    assert client.get("/api/v1/audit-log?entity=batch&action=update").json()["total"] == 0
