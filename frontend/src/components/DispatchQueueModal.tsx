@@ -180,7 +180,7 @@ export default function DispatchQueueModal({ onClose }: { onClose: () => void })
                     )}
                     {label}
                     <span
-                      className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold ${
+                      className={`rounded-full px-1.5 py-0.5 font-mono text-[11px] font-bold ${
                         on ? 'bg-night/10' : 'bg-white/[0.08] text-white/60'
                       }`}
                     >
@@ -206,7 +206,7 @@ export default function DispatchQueueModal({ onClose }: { onClose: () => void })
                   <X className="size-4" />
                 </button>
               ) : (
-                <span className="font-mono text-[9px] text-muted">Updated now</span>
+                <span className="font-mono text-[10.5px] text-muted">Updated now</span>
               )}
             </label>
           </div>
@@ -214,7 +214,7 @@ export default function DispatchQueueModal({ onClose }: { onClose: () => void })
 
         {/* Column headings */}
         <div
-          className={`mx-6 mt-4 grid shrink-0 ${COLS} items-center gap-x-3.5 border-b border-line px-4 pb-2.5 font-mono text-[9.5px] font-semibold uppercase tracking-[0.05em] whitespace-nowrap text-muted`}
+          className={`mx-6 mt-4 grid shrink-0 ${COLS} items-center gap-x-3.5 border-b border-line px-4 pb-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.05em] whitespace-nowrap text-muted`}
         >
           <Checkbox
             label="Select all visible pending batches"
@@ -224,7 +224,7 @@ export default function DispatchQueueModal({ onClose }: { onClose: () => void })
             disabled={pendingRows.length === 0}
           />
           <span>Batch ID &amp; Product</span>
-          <span>Sensor Telemetry 24h</span>
+          <span>Sensor Telemetry 1h</span>
           <span>Static Expiry vs Dynamic RUL</span>
           <span>Risk Signal &amp; Recommendation</span>
           <span>Review Status</span>
@@ -310,7 +310,7 @@ export default function DispatchQueueModal({ onClose }: { onClose: () => void })
 function Stat({ label, value, tone = 'text-fg' }: { label: string; value: string; tone?: string }) {
   return (
     <div className="rounded-2xl bg-white/[0.04] px-3.5 py-2 ring-1 ring-inset ring-white/[0.06]">
-      <p className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.08em] text-muted">{label}</p>
+      <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">{label}</p>
       <p className={`mt-0.5 font-mono text-[15px] font-bold leading-none ${tone}`}>{value}</p>
     </div>
   )
@@ -364,7 +364,7 @@ function Row({
           <span className="font-mono text-[10.5px] font-bold text-muted">#{b.id}</span>
           {b.breach && (
             <span
-              className={`rounded-full px-1.5 py-px font-mono text-[8.5px] font-bold uppercase tracking-[0.06em] ${
+              className={`rounded-full px-1.5 py-px font-mono text-[10px] font-bold uppercase tracking-[0.06em] ${
                 b.breach === 'critical'
                   ? 'bg-danger/10 text-danger ring-1 ring-inset ring-danger/20'
                   : 'bg-warn/10 text-warn ring-1 ring-inset ring-warn/20'
@@ -375,7 +375,7 @@ function Row({
           )}
         </div>
         <p className="mt-0.5 truncate text-[13.5px] font-bold">{b.product}</p>
-        <p className="truncate font-mono text-[10px] text-muted">
+        <p className="truncate font-mono text-[11px] text-muted">
           {b.zone} · {b.units} units
         </p>
       </div>
@@ -417,7 +417,7 @@ function Row({
               className={`h-full flex-1 ${gap <= -35 ? 'hatch-danger' : gap <= -15 ? 'hatch-warn' : 'hatch-muted'}`}
             />
           </div>
-          <span className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold ${gapTone}`}>{gap}%</span>
+          <span className={`rounded-full px-1.5 py-0.5 font-mono text-[11px] font-bold ${gapTone}`}>{gap}%</span>
         </div>
       </div>
 
@@ -428,7 +428,7 @@ function Row({
         </span>
         <div className="min-w-0">
           <p className="line-clamp-2 text-[12px] font-semibold leading-[1.3] text-fg/90">{b.rec}</p>
-          <p className="mt-0.5 font-mono text-[10px] text-muted">
+          <p className="mt-0.5 font-mono text-[11px] text-muted">
             Predicted expiry {shortDate(b.predictedExpiry)}
           </p>
         </div>
@@ -472,7 +472,7 @@ function Sparkline({ batch }: { batch: StockRecord }) {
   const W = 72
   const H = 30
   const series = batch.series
-  if (series.length < 2) return <span className="w-[72px] shrink-0 font-mono text-[9px] text-muted">No readings</span>
+  if (series.length < 2) return <span className="w-[72px] shrink-0 font-mono text-[10.5px] text-muted">No readings</span>
   const y = (t: number) => H - 3 - (Math.min(Math.max(t, 0), 10) / 10) * (H - 6)
   const x = (i: number) => (i / (series.length - 1)) * W
   const d = series.map((t, i) => `${i ? 'L' : 'M'} ${x(i).toFixed(1)} ${y(t).toFixed(1)}`).join(' ')
@@ -485,7 +485,7 @@ function Sparkline({ batch }: { batch: StockRecord }) {
       <line x1="0" x2={W} y1={y(LIMIT)} y2={y(LIMIT)} stroke="#fff" strokeOpacity="0.25" strokeDasharray="2 2" />
       <path d={`${d} L ${W} ${H} L 0 ${H} Z`} fill={color} fillOpacity="0.12" />
       <path d={d} fill="none" stroke={color} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx={x(peakIdx)} cy={y(series[peakIdx])} r="2.6" fill={color} stroke="#18191E" strokeWidth="1.2" />
+      <circle cx={x(peakIdx)} cy={y(series[peakIdx])} r="2.6" fill={color} stroke="var(--color-surface)" strokeWidth="1.2" />
     </svg>
   )
 }

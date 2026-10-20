@@ -12,6 +12,7 @@ export type ZoneHistory = Schemas['HistoryOut']
 const POLL_MS = 5000
 const DANGER_C = 4 // CLAUDE.md: any reading above 4 °C is flagged
 const HOUR = 3_600_000
+const HISTORY_MS = HOUR // one hour keeps one point per reading, so charts move every poll
 
 export type SensorRecord = {
   key: string
@@ -59,7 +60,7 @@ type InventoryContextValue = {
   sensors: SensorRecord[]
   stocks: StockRecord[]
   recommendations: Recommendation[]
-  /** Last 24 h of readings per zone. */
+  /** The last hour of readings per zone, ending at the zone's latest reading. */
   histories: ZoneHistory[]
   locations: string[]
   categories: string[]
@@ -114,7 +115,8 @@ function toStock(b: Batch, series: number[], rec: Recommendation | null): StockR
     series,
     breach: latest > DANGER_C ? 'critical' : peak > DANGER_C ? 'spike' : null,
     staticHours: Math.max(0, hoursUntil(b.printed_expiry, now)),
-    dynamicHours: Math.round(b.rul_h ?? 0),
+    // Until the worker's first run (about 30 s after start) there is no RUL yet: show the printed life, not a total loss.
+    dynamicHours: b.rul_h == null ? Math.max(0, hoursUntil(b.printed_expiry, now)) : Math.round(b.rul_h),
     printedExpiry: b.printed_expiry,
     predictedExpiry: b.predicted_expiry,
     rec: recText(rec),
@@ -160,7 +162,14 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
         api<Page<Schemas['ProductConfig']>>('/products'),
       ])
       const histories = await Promise.all(
-        zones.items.map((z) => api<ZoneHistory>(`/telemetry?zone_id=${encodeURIComponent(z.id)}`)),
+        zones.items.map((z) => {
+          // Anchor on the zone's latest reading: in sim mode its clock runs ahead of the wall clock.
+          if (!z.latest) return Promise.resolve<ZoneHistory>({ zone_id: z.id, points: [] })
+          const to = new Date(z.latest.ts)
+          const from = new Date(to.getTime() - HISTORY_MS)
+          const q = new URLSearchParams({ zone_id: z.id, from: from.toISOString(), to: to.toISOString() })
+          return api<ZoneHistory>(`/telemetry?${q}`)
+        }),
       )
       const series = new Map(histories.map((h) => [h.zone_id, h.points.map((p) => p.temperature_c)]))
       // Most urgent pending recommendation per batch: SALVAGE outranks PRIORITY_DISPATCH.

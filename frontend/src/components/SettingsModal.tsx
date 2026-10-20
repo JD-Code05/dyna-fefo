@@ -44,7 +44,7 @@ export default function SettingsModal({
       >
         <aside className="flex w-[210px] shrink-0 flex-col border-r border-line bg-night/40 p-4">
           <div className="px-2 py-2">
-            <p className="font-mono text-[8px] font-semibold uppercase tracking-[0.12em] text-sky">FreshOps</p>
+            <p className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.12em] text-sky">FreshOps</p>
             <h2 id="settings-title" className="mt-1 text-[17px] font-bold text-fg">Settings</h2>
           </div>
           <nav aria-label="Settings sections" className="mt-4 space-y-1">
@@ -62,7 +62,7 @@ export default function SettingsModal({
               </button>
             ))}
           </nav>
-          <p className="mt-auto px-2 font-mono text-[8px] leading-relaxed text-muted">
+          <p className="mt-auto px-2 font-mono text-[9.5px] leading-relaxed text-muted">
             FreshOps Console<br />Version 2.4.0
           </p>
         </aside>
@@ -73,7 +73,7 @@ export default function SettingsModal({
               <h3 className="text-[15px] font-bold capitalize text-fg">
                 {section === 'warehouse' ? 'Warehouse setup' : section}
               </h3>
-              <p className="mt-1 text-[9.5px] text-muted">Manage your warehouse console preferences.</p>
+              <p className="mt-1 text-[11px] text-muted">Manage your warehouse console preferences.</p>
             </div>
             <button
               type="button"
@@ -92,7 +92,7 @@ export default function SettingsModal({
 
           <footer className="flex h-16 shrink-0 items-center justify-end gap-2 border-t border-line px-6">
             {saved && (
-              <span className="mr-auto flex items-center gap-1.5 text-[10px] font-semibold text-ok">
+              <span className="mr-auto flex items-center gap-1.5 text-[11px] font-semibold text-ok">
                 <Check className="size-3.5" /> Settings saved
               </span>
             )}
@@ -113,7 +113,7 @@ function SectionIntro({ title, detail }: { title: string; detail: string }) {
   return (
     <div className="mb-5">
       <h4 className="text-[13px] font-bold text-fg">{title}</h4>
-      <p className="mt-1 text-[10px] leading-relaxed text-muted">{detail}</p>
+      <p className="mt-1 text-[11px] leading-relaxed text-muted">{detail}</p>
     </div>
   )
 }
@@ -171,12 +171,12 @@ function SetupList({ title, detail, icon, items }: { title: string; detail: stri
         <span className="grid size-8 place-items-center rounded-lg bg-sky/10 text-sky">{icon}</span>
         <div>
           <p className="text-[10.5px] font-semibold text-fg">{title}</p>
-          <p className="mt-0.5 text-[8.5px] text-muted">{detail}</p>
+          <p className="mt-0.5 text-[10px] text-muted">{detail}</p>
         </div>
       </div>
       <ul className="mt-4 max-h-[250px] space-y-1 overflow-y-auto pr-1">
         {items.map((item) => (
-          <li key={item} className="flex h-8 items-center rounded-lg border border-line bg-surface px-2.5 text-[9.5px] text-fg">
+          <li key={item} className="flex h-8 items-center rounded-lg border border-line bg-surface px-2.5 text-[11px] text-fg">
             <span className="min-w-0 flex-1 truncate" title={item}>{item}</span>
           </li>
         ))}
