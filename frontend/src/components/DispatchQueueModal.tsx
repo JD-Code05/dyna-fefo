@@ -224,7 +224,7 @@ export default function DispatchQueueModal({ onClose }: { onClose: () => void })
             disabled={pendingRows.length === 0}
           />
           <span>Batch ID &amp; Product</span>
-          <span>Sensor Telemetry 24h</span>
+          <span>Sensor Telemetry 1h</span>
           <span>Static Expiry vs Dynamic RUL</span>
           <span>Risk Signal &amp; Recommendation</span>
           <span>Review Status</span>

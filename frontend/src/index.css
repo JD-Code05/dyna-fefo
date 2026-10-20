@@ -219,3 +219,22 @@ textarea:focus-visible {
   outline: 2px solid var(--color-sky);
   outline-offset: 1px;
 }
+
+/* Chart updates morph instead of jumping (every 5 s poll). Chromium transitions `d`; other browsers update instantly. */
+:root {
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+.chart-morph {
+  transition: d 300ms var(--ease-in-out);
+}
+.chart-dot {
+  transition:
+    cx 300ms var(--ease-in-out),
+    cy 300ms var(--ease-in-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .chart-morph,
+  .chart-dot {
+    transition: none;
+  }
+}

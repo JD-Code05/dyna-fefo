@@ -19,12 +19,12 @@ import {
 import { api, type Schemas } from '../api/client'
 import { useInventory, type SensorRecord, type StockRecord, type StockUpdate, type ZoneHistory } from '../data/InventoryContext'
 import ShelfLifeComparisonBar from './ShelfLifeComparisonBar'
+import TrendChart, { type TrendPoint } from './TrendChart'
 import { card, CardHint, CardTitle, ConfirmDelete, Dropdown } from './ui'
 
 const fmtDate = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString('en-US', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : '—'
 const fmtDay = (iso: string) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
-const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
 const errorText = (e: unknown) => (e as { message?: string }).message ?? 'Unable to save. Check the backend is running and try again.'
 
 /** The zone with the most readings, so charts show the sensor that is actually reporting. */
@@ -86,37 +86,22 @@ function ViewHeading({ eyebrow, title, detail }: { eyebrow: string; title: strin
   )
 }
 
-function linePoints(data: number[], width = 500, height = 150) {
-  const min = Math.min(...data)
-  const max = Math.max(...data)
-  return data
-    .map((value, index) => {
-      const x = 18 + (index / (data.length - 1)) * (width - 36)
-      const y = height - 18 - ((value - min) / Math.max(max - min, 1)) * (height - 42)
-      return `${x},${y}`
-    })
-    .join(' ')
-}
-
 function TrendCard({
   title,
   hint,
-  data,
+  points,
   color,
   unit,
-  stat,
-  labels,
+  threshold,
 }: {
   title: string
   hint: string
-  data: number[]
-  color: 'sky' | 'warn' | 'violet' | 'ok'
+  points: TrendPoint[]
+  color: string
   unit: string
-  stat: string
-  labels: string[]
+  threshold?: { value: number; label: string }
 }) {
-  const stroke = { sky: '#38BDF8', warn: '#F5A623', violet: '#A78BFA', ok: '#10B981' }[color]
-  const statTone = { sky: 'text-sky', warn: 'text-warn', violet: 'text-violet', ok: 'text-ok' }[color]
+  const last = points.at(-1)
   return (
     <section className={`${card} flex min-h-0 flex-col overflow-hidden p-5`}>
       <div className="flex items-start justify-between">
@@ -124,33 +109,14 @@ function TrendCard({
           <CardTitle className="text-[13px]">{title}</CardTitle>
           <CardHint>{hint}</CardHint>
         </div>
-        <p className={`font-mono text-[18px] font-bold ${statTone}`}>
-          {stat} <span className="text-[10.5px] font-medium text-muted">{unit}</span>
+        <p className="flex items-center gap-2 font-mono text-[18px] font-bold tabular-nums text-fg">
+          <i className="h-0.5 w-3 rounded-full" style={{ background: color }} aria-hidden />
+          {last ? last.value.toFixed(1) : '—'}
+          <span className="text-[10.5px] font-medium text-muted">{unit} now</span>
         </p>
       </div>
-      <div className="relative mt-4 min-h-0 flex-1">
-        {data.length < 2 ? (
-          <p className="grid h-full place-items-center text-[11px] text-muted">No readings in the last 24 hours</p>
-        ) : (
-        <svg viewBox="0 0 500 150" preserveAspectRatio="none" className="h-full w-full" role="img" aria-label={`${title} trend graph`}>
-          {[24, 64, 104, 144].map((y) => (
-            <line key={y} x1="0" y1={y} x2="500" y2={y} stroke="var(--color-line)" strokeWidth="1" />
-          ))}
-          <polygon points={`18,132 ${linePoints(data)} 482,132`} fill={stroke} fillOpacity="0.08" />
-          <polyline points={linePoints(data)} fill="none" stroke={stroke} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
-          {linePoints(data)
-            .split(' ')
-            .map((point, index) => {
-              const [cx, cy] = point.split(',')
-              return <circle key={index} cx={cx} cy={cy} r="3" fill="var(--color-surface)" stroke={stroke} strokeWidth="2" />
-            })}
-        </svg>
-        )}
-        <div className="absolute inset-x-0 bottom-0 flex justify-between px-2 font-mono text-[9px] uppercase text-muted">
-          {labels.map((label, i) => (
-            <span key={i}>{label}</span>
-          ))}
-        </div>
+      <div className="mt-3 min-h-0 flex-1">
+        <TrendChart points={points} color={color} unit={unit} label={title} threshold={threshold} />
       </div>
     </section>
   )
@@ -237,27 +203,20 @@ export function AnalyticsView() {
   const { histories } = useInventory()
   const zone = busiestZone(histories)
   const points = zone?.points ?? []
-  // Keep the chart readable: at most 24 evenly spaced points.
-  const step = Math.max(1, Math.ceil(points.length / 24))
-  const sampled = points.filter((_, i) => i % step === 0 || i === points.length - 1)
-  const labels = sampled.length
-    ? [0, 1, 2, 3].map((q) => fmtTime(sampled[Math.round((q / 3) * (sampled.length - 1))].ts))
-    : []
-  const last = points.at(-1)
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       <ViewHeading
         eyebrow="Warehouse analytics"
         title="Shelf-life & Environmental Analytics"
-        detail={`Printed versus sensor-estimated expiration for every batch, and the last 24 hours of readings${zone ? ` from ${zone.zone_id}` : ''}.`}
+        detail={`Printed versus sensor-estimated expiration for every batch, and the last hour of readings${zone ? ` from ${zone.zone_id}` : ''}.`}
       />
       <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-3">
         <div className="row-span-2 min-h-0">
           <ExpirationChart />
         </div>
-        <TrendCard title="Temperature Over Time" hint={`${zone?.zone_id ?? 'No zone'} · last 24 hours`} data={sampled.map((p) => p.temperature_c)} color="warn" stat={last ? last.temperature_c.toFixed(1) : '—'} unit="°C NOW" labels={labels} />
-        <TrendCard title="Humidity Over Time" hint={`${zone?.zone_id ?? 'No zone'} · last 24 hours`} data={sampled.map((p) => p.humidity_pct)} color="sky" stat={last ? String(Math.round(last.humidity_pct)) : '—'} unit="% RH NOW" labels={labels} />
+        <TrendCard title="Temperature Over Time" hint={`${zone?.zone_id ?? 'No zone'} · last hour`} points={points.map((p) => ({ ts: p.ts, value: p.temperature_c }))} color="var(--color-sky)" unit="°C" threshold={{ value: 4, label: '4°C limit' }} />
+        <TrendCard title="Humidity Over Time" hint={`${zone?.zone_id ?? 'No zone'} · last hour`} points={points.map((p) => ({ ts: p.ts, value: p.humidity_pct }))} color="var(--color-violet)" unit="% RH" />
       </div>
     </div>
   )
@@ -750,7 +709,7 @@ function RealtimeSensorGraph({ sensor }: { sensor: SensorRecord }) {
               </button>
             ))}
           </div>
-          <span className="mt-1.5 block text-[9.5px] text-muted">{sensor.location} · last 24 hours</span>
+          <span className="mt-1.5 block text-[9.5px] text-muted">{sensor.location} · last hour</span>
         </div>
         <span className={`flex items-center gap-1.5 font-mono text-[13px] font-bold ${warning ? 'text-danger' : 'text-ok'}`}>
           <span className={`relative size-1.5 rounded-full ${warning ? 'bg-danger' : 'bg-ok'}`}>
