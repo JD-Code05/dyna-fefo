@@ -1,3 +1,4 @@
+import pytest
 from conftest import AGED_NOW
 
 from app.db.models import Recommendation
@@ -37,3 +38,12 @@ def test_deleted_batch_rec_hidden_and_404(client, aged_batch_with_rec):
     client.delete(f"/api/v1/batches/{batch_id}")
     assert rec_id not in [r["id"] for r in client.get("/api/v1/recommendations").json()["items"]]
     assert client.post(f"/api/v1/recommendations/{rec_id}/decision", json={"decision": "approve"}).status_code == 404
+
+
+@pytest.mark.parametrize("decision", ["approve", "reject"])
+def test_decided_recommendation_not_reraised(client, db, products, aged_batch_with_rec, decision):
+    rec_id, batch_id = aged_batch_with_rec
+    client.post(f"/api/v1/recommendations/{rec_id}/decision", json={"decision": decision})
+    recompute_all(db, products, AGED_NOW)
+    assert db.query(Recommendation).filter_by(batch_id=batch_id, type="PRIORITY_DISPATCH").count() == 1
+    assert db.query(Recommendation).filter_by(batch_id=batch_id, status="pending").count() == 0

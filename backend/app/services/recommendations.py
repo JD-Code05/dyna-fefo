@@ -51,8 +51,10 @@ def refresh_for_batch(db: Session, batch: Batch, state: BatchState, cfg: Product
         "printed_expiry": batch.printed_expiry.isoformat(),
     }
     rec = db.scalar(select(Recommendation).where(
-        Recommendation.batch_id == batch.id, Recommendation.type == kind,
-        Recommendation.status == RecStatus.pending.value))
+        Recommendation.batch_id == batch.id, Recommendation.type == kind)
+        .order_by(Recommendation.id.desc()).limit(1))
+    if rec is not None and rec.status != RecStatus.pending.value:
+        return rec  # already decided: do not re-raise
     if rec is None:
         rec = Recommendation(batch_id=batch.id, type=RecType(kind).value, rationale=rationale)
         db.add(rec)
