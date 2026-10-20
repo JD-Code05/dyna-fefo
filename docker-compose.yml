@@ -30,6 +30,7 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-dynafefo}:${POSTGRES_PASSWORD:-dynafefo}@db:5432/${POSTGRES_DB:-dynafefo}
       TEST_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-dynafefo}:${POSTGRES_PASSWORD:-dynafefo}@db:5432/dynafefo_test
       MQTT_HOST: mqtt
+      SIM_MODE: "true"
       CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000"]}
     volumes:
       - ./backend:/app
@@ -47,6 +48,35 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+
+  worker:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-dynafefo}:${POSTGRES_PASSWORD:-dynafefo}@db:5432/${POSTGRES_DB:-dynafefo}
+      TEST_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-dynafefo}:${POSTGRES_PASSWORD:-dynafefo}@db:5432/dynafefo_test
+      MQTT_HOST: mqtt
+      SIM_MODE: "true"
+    volumes:
+      - ./backend:/app
+      - ./data:/data:ro
+    command: python -m app.worker
+    depends_on:
+      api:
+        condition: service_healthy
+      mqtt:
+        condition: service_healthy
+
+  simulator:
+    build: ./simulator
+    environment:
+      MQTT_HOST: mqtt
+      SCENARIO: ${SCENARIO:-normal}
+      SIM_SPEEDUP: ${SIM_SPEEDUP:-1}
+      DEVICE_ID: esp32-chiller-01
+      ZONE_ID: chiller-a
+    depends_on:
+      mqtt:
+        condition: service_healthy
 
 volumes:
   dbdata:

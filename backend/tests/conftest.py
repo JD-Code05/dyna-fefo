@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import pytest
 from alembic import command
 from alembic.config import Config
@@ -9,6 +11,15 @@ from app.core.config import get_settings
 from app.core.deps import get_db
 from app.db.seed import seed
 from app.main import create_app
+
+NOW = datetime.now(UTC).replace(microsecond=0)
+
+
+def iso(dt: datetime) -> str:
+    return dt.isoformat().replace("+00:00", "Z")
+
+
+NOW_ISO = iso(NOW)
 
 _engine = create_engine(get_settings().test_database_url)
 
