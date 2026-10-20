@@ -8,6 +8,7 @@ from app.core.config import get_settings
 from app.core.products import ProductConfig
 from app.db.models import Batch, BatchState, BatchStateHistory, BatchStatus, Telemetry
 from app.engine.rul import Reading, RulParams, compute_rul
+from app.services.recommendations import refresh_for_batch
 
 log = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ def recompute_all(db: Session, products: dict[str, ProductConfig], now: datetime
         try:
             with db.begin_nested():  # savepoint: a failing batch leaves no partial rows
                 state = recompute_batch(db, b, cfg, t)
-                # Task 8: refresh_for_batch(db, b, state, cfg) goes here.
+                refresh_for_batch(db, b, state, cfg)
         except Exception:
             log.exception("batch %s: recompute failed, skipped", b.id)
             continue
