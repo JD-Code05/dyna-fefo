@@ -29,3 +29,10 @@ def require_role(role: Role) -> Callable[..., User]:
         return user
 
     return dep
+
+
+def get_live(db: Session, model, id, not_found_code: str):
+    obj = db.get(model, id)
+    if obj is None or obj.deleted_at is not None:
+        raise ApiError(404, not_found_code, f"{model.__name__} not found")
+    return obj
