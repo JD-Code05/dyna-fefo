@@ -26,7 +26,7 @@ export default function ShelfLifeCard() {
   const avgLoss = visible.length
     ? Math.round(
         visible.reduce(
-          (sum, batch) => sum + ((batch.staticHours - batch.dynamicHours) / batch.staticHours) * 100,
+          (sum, batch) => sum + Math.max(0, (batch.staticHours - batch.dynamicHours) / Math.max(1, batch.staticHours)) * 100,
           0,
         ) / visible.length,
       )
@@ -164,10 +164,10 @@ export default function ShelfLifeCard() {
                   value={`${Math.max(0, selected.staticHours - selected.dynamicHours)}h`}
                   tone="text-danger"
                 />
-                <DetailRow label="Average temp" value={`${selected.avgTemp}°C`} />
+                <DetailRow label="Average temp" value={selected.series.length ? `${selected.avgTemp.toFixed(1)}°C` : '—'} />
                 <DetailRow
                   label="Peak exposure"
-                  value={`${selected.peakTemp}°C`}
+                  value={selected.series.length ? `${selected.peakTemp.toFixed(1)}°C` : '—'}
                   tone={selected.breach ? 'text-danger' : 'text-fg'}
                 />
               </div>

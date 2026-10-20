@@ -9,6 +9,7 @@ import SettingsModal from './components/SettingsModal'
 import {
   AnalyticsView,
   DecisionsView,
+  HistoryView,
   ManagerDecisionsCard,
   SensorsView,
   StockOverviewView,
@@ -107,6 +108,7 @@ export default function DesktopDashboard({
               {activeTab === 'stock-overview' && <StockOverviewView />}
               {activeTab === 'sensors' && <SensorsView />}
               {activeTab === 'decisions' && <DecisionsView onOpenQueue={openQueue} />}
+              {activeTab === 'history' && <HistoryView />}
             </main>
           )}
         </div>

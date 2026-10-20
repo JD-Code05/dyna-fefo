@@ -6,6 +6,7 @@ import {
   ChartNoAxesCombined,
   ChevronDown,
   Gauge,
+  History,
   LogOut,
   Moon,
   Settings,
@@ -20,6 +21,7 @@ const sections = [
   { id: 'analytics', label: 'Analytics', icon: Gauge },
   { id: 'sensors', label: 'Sensors', icon: Activity },
   { id: 'decisions', label: 'Decisions', icon: Snowflake },
+  { id: 'history', label: 'Change History', icon: History },
 ] as const
 
 export type WorkspaceTab = (typeof sections)[number]['id']
@@ -39,7 +41,8 @@ export default function DesktopHeader({
   onOpenSettings: () => void
   onLogout: () => void
 }) {
-  const { sensors } = useInventory()
+  const { sensors, error } = useInventory()
+  const online = sensors.filter((sensor) => sensor.status !== 'No data').length
   const [accountOpen, setAccountOpen] = useState(false)
   const accountRef = useRef<HTMLDivElement>(null)
   const currentDate = new Intl.DateTimeFormat('en-US', {
@@ -165,9 +168,9 @@ export default function DesktopHeader({
             {currentDate}
           </span>
           <span className="h-3 w-px bg-line" />
-          <span className="flex items-center gap-1.5">
-            <span className="size-1.5 rounded-full bg-ok" />
-            {sensors.length} sensors online
+          <span role="status" className={`flex items-center gap-1.5 ${error ? 'text-danger' : ''}`} title={error ?? undefined}>
+            <span className={`size-1.5 rounded-full ${error ? 'bg-danger' : 'bg-ok'}`} />
+            {error ? 'Backend offline' : `${online}/${sensors.length} sensors reporting`}
           </span>
           <span className="h-3 w-px bg-line" />
           <button type="button" onClick={onOpenSettings} className="flex items-center gap-1.5 hover:text-fg">

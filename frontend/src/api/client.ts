@@ -12,7 +12,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json', ...init?.headers },
   })
   if (res.status === 204) return undefined as T
-  const body = await res.json()
-  if (!res.ok) throw (body as Schemas['ErrorOut']).error
+  const body = await res.json().catch(() => null)
+  if (!res.ok) throw (body as Schemas['ErrorOut'] | null)?.error ?? { code: 'http_error', message: `Request failed (${res.status})`, details: {} }
   return body as T
 }

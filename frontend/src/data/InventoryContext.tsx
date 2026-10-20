@@ -1,223 +1,232 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
-import { dispatchBatches, type DispatchBatch } from './dispatch'
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { api, type Schemas } from '../api/client'
+import type { Action, Breach } from './dispatch'
+
+type Page<T> = { items: T[]; total: number; limit: number; offset: number }
+type Batch = Schemas['BatchOut']
+type Device = Schemas['DeviceOut']
+type Zone = Schemas['ZoneOut']
+export type Recommendation = Schemas['RecommendationOut']
+export type ZoneHistory = Schemas['HistoryOut']
+
+const POLL_MS = 5000
+const DANGER_C = 4 // CLAUDE.md: any reading above 4 °C is flagged
+const HOUR = 3_600_000
 
 export type SensorRecord = {
   key: string
   id: string
   name: string
   location: string
-  temperature: number
-  humidity: number
-  battery: number
-  signal: number
-  status: string
+  temperature: number | null
+  humidity: number | null
+  updated: string | null
+  status: 'Online' | 'Critical' | 'No data'
 }
 
 export type StockState = 'moving' | 'dispatched' | 'stored' | 'hold' | 'inspection'
 
-export type StockRecord = DispatchBatch & {
+export type StockRecord = {
   key: string
+  id: string
+  product: string
+  zone: string
+  units: number
+  avgTemp: number
+  peakTemp: number
+  /** Index of the reading where the peak occurred, within `series`. */
+  peakAt: number
+  /** Zone temperatures over the last 24 h, oldest first. */
+  series: number[]
+  breach: Breach
+  staticHours: number
+  dynamicHours: number
+  printedExpiry: string
+  predictedExpiry: string | null
+  rec: string
+  action: Action
+  recommendation: Recommendation | null
   category: string
   detail: string
   identifier: string
   activity: { state: StockState; label: string; detail: string; updated: string }
 }
 
-const sensorSeed: SensorRecord[] = [
-  { key: 'sensor-204', id: 'SNS-204', name: 'Thermal Probe 204', location: 'Chiller Bay 2', temperature: 8.9, humidity: 72, battery: 82, signal: -61, status: 'Critical' },
-  { key: 'sensor-118', id: 'SNS-118', name: 'Climate Probe 118', location: 'Chiller Bay 1', temperature: 3.2, humidity: 88, battery: 91, signal: -54, status: 'Online' },
-  { key: 'sensor-086', id: 'SNS-086', name: 'Climate Probe 086', location: 'Cold Vault', temperature: 3.6, humidity: 84, battery: 76, signal: -58, status: 'Online' },
-  { key: 'sensor-072', id: 'SNS-072', name: 'Thermal Probe 072', location: 'Loading Dock', temperature: 4.1, humidity: 79, battery: 68, signal: -67, status: 'Warning' },
-  { key: 'sensor-031', id: 'SNS-031', name: 'Climate Probe 031', location: 'Ripening Room', temperature: 2.9, humidity: 86, battery: 94, signal: -51, status: 'Online' },
-  { key: 'sensor-014', id: 'SNS-014', name: 'Dock Probe 014', location: 'Receiving Bay', temperature: 5.2, humidity: 67, battery: 61, signal: -70, status: 'Warning' },
-]
-
-const stockMeta: Record<string, Omit<StockRecord, keyof DispatchBatch | 'key'>> = {
-  'H-061': { category: 'Fresh herbs', detail: '12 × 125g vented packs', identifier: 'STK-HRB-0061', activity: { state: 'hold', label: 'Quality hold', detail: 'Awaiting microbial audit', updated: '2 min ago' } },
-  'B-409': { category: 'Fresh berries', detail: '24 × 250g clamshells', identifier: 'STK-BRY-0409', activity: { state: 'moving', label: 'Moving out', detail: 'Transfer to outbound lane 03', updated: 'Just now' } },
-  'G-218': { category: 'Leafy greens', detail: '18 × 500g sealed bags', identifier: 'STK-GRN-0218', activity: { state: 'inspection', label: 'Under inspection', detail: 'Quality review in progress', updated: '6 min ago' } },
-  'S-377': { category: 'Fresh seafood', detail: '96 vacuum-packed fillets', identifier: 'STK-SEA-0377', activity: { state: 'dispatched', label: 'Dispatched', detail: 'En route to Harbor St.', updated: '18 min ago' } },
-  'M-918': { category: 'Fresh produce', detail: '20 × 1kg cartons', identifier: 'STK-PRD-0918', activity: { state: 'inspection', label: 'Quality review', detail: 'Sampling 12 units', updated: '9 min ago' } },
-  'D-104': { category: 'Chilled dairy', detail: '35 × 12-bottle crates', identifier: 'STK-DRY-0104', activity: { state: 'moving', label: 'Relocating', detail: 'Moving to Cold Vault C', updated: '4 min ago' } },
-  'A-552': { category: 'Fresh produce', detail: '30 × 10-count trays', identifier: 'STK-PRD-0552', activity: { state: 'stored', label: 'Stored', detail: 'Ripening cycle active', updated: '1 min ago' } },
-  'Y-233': { category: 'Chilled dairy', detail: '30 × 12-cup cases', identifier: 'STK-DRY-0233', activity: { state: 'stored', label: 'Staged', detail: 'Reserved for dispatch wave 4', updated: '3 min ago' } },
-}
-
-const stockSeed: StockRecord[] = dispatchBatches.map((batch) => ({
-  ...batch,
-  key: `stock-${batch.id}`,
-  ...stockMeta[batch.id],
-}))
+export type StockInput = { code: string; zone: string; units: number; detail?: string; printedExpiration: string }
+export type StockUpdate = Pick<StockRecord, 'identifier' | 'zone' | 'detail' | 'units'>
 
 type InventoryContextValue = {
   sensors: SensorRecord[]
   stocks: StockRecord[]
+  recommendations: Recommendation[]
+  /** Last 24 h of readings per zone. */
+  histories: ZoneHistory[]
   locations: string[]
   categories: string[]
-  updateSensor: (key: string, updates: Pick<SensorRecord, 'name' | 'id' | 'location'>) => void
-  addSensor: (name: string, location: string) => void
-  deleteSensor: (key: string) => void
-  addLocation: (location: string) => void
-  addCategory: (category: string) => void
-  deleteLocation: (location: string) => void
-  deleteCategory: (category: string) => void
-  updateStock: (
-    key: string,
-    updates: Pick<StockRecord, 'product' | 'zone' | 'detail' | 'identifier' | 'units' | 'value'>,
-  ) => void
-  deleteStock: (key: string) => void
-  addStock: (input: {
-    product: string
-    zone: string
-    units: number
-    value?: number
-    batchId?: string
-    category?: string
-    detail?: string
-    identifier?: string
-    printedExpiration?: string
-  }) => void
+  error: string | null
+  refresh: () => Promise<void>
+  updateSensor: (key: string, updates: Pick<SensorRecord, 'name' | 'location'>) => Promise<void>
+  addSensor: (id: string, name: string, location: string) => Promise<string>
+  deleteSensor: (key: string) => Promise<void>
+  updateStock: (key: string, updates: StockUpdate) => Promise<void>
+  deleteStock: (key: string) => Promise<void>
+  addStock: (input: StockInput) => Promise<void>
+  decide: (recId: number, decision: 'approve' | 'reject', note?: string) => Promise<void>
 }
 
 const InventoryContext = createContext<InventoryContextValue | null>(null)
 
+const hoursUntil = (iso: string, now: number) => Math.round((new Date(iso).getTime() - now) / HOUR)
+const timeAgo = (iso: string) => {
+  const s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000))
+  return s < 60 ? `${s}s ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : `${Math.round(s / 3600)} h ago`
+}
+
+function recText(r: Recommendation | null): string {
+  if (!r) return 'No action needed · within shelf life'
+  const pct = Math.round(Number(r.rationale.rul_ratio ?? 0) * 100)
+  return r.type === 'SALVAGE'
+    ? `Salvage: only ${pct}% of shelf life left`
+    : `Priority dispatch: ${pct}% of shelf life left`
+}
+
+const activityFor = (b: Batch): StockRecord['activity'] =>
+  b.status === 'dispatched'
+    ? { state: 'dispatched', label: 'Dispatched', detail: 'Marked dispatched by supervisor', updated: timeAgo(b.updated_at) }
+    : b.status === 'salvaged'
+      ? { state: 'hold', label: 'Salvaged', detail: 'Removed from sale', updated: timeAgo(b.updated_at) }
+      : { state: 'stored', label: 'In storage', detail: `Monitored in ${b.zone_id}`, updated: timeAgo(b.updated_at) }
+
+function toStock(b: Batch, series: number[], rec: Recommendation | null): StockRecord {
+  // Shelf-life clock: the zone's simulated time when SIM_SPEEDUP runs ahead of the wall clock.
+  const now = b.predicted_expiry && b.rul_h != null ? new Date(b.predicted_expiry).getTime() - b.rul_h * HOUR : Date.now()
+  const peak = series.length ? Math.max(...series) : 0
+  const latest = series.at(-1) ?? 0
+  return {
+    key: String(b.id),
+    id: b.code,
+    product: b.product_name,
+    zone: b.zone_id,
+    units: b.quantity,
+    avgTemp: series.length ? series.reduce((s, t) => s + t, 0) / series.length : 0,
+    peakTemp: peak,
+    peakAt: series.indexOf(peak),
+    series,
+    breach: latest > DANGER_C ? 'critical' : peak > DANGER_C ? 'spike' : null,
+    staticHours: Math.max(0, hoursUntil(b.printed_expiry, now)),
+    dynamicHours: Math.round(b.rul_h ?? 0),
+    printedExpiry: b.printed_expiry,
+    predictedExpiry: b.predicted_expiry,
+    rec: recText(rec),
+    action: rec?.type === 'SALVAGE' ? 'audit' : rec ? 'dispatch' : 'review',
+    recommendation: rec,
+    category: b.product_name,
+    detail: b.notes ?? '',
+    identifier: b.code,
+    activity: activityFor(b),
+  }
+}
+
+function toSensor(d: Device, zone: Zone | undefined): SensorRecord {
+  const l = zone?.latest
+  return {
+    key: d.id,
+    id: d.id,
+    name: d.name,
+    location: d.zone_id,
+    temperature: l?.temperature_c ?? null,
+    humidity: l?.humidity_pct ?? null,
+    updated: l ? timeAgo(l.ts) : null,
+    status: !l ? 'No data' : l.danger ? 'Critical' : 'Online',
+  }
+}
+
 export function InventoryProvider({ children }: { children: ReactNode }) {
-  const [sensors, setSensors] = useState(sensorSeed)
-  const [stocks, setStocks] = useState(stockSeed)
-  const [locations, setLocations] = useState([
-    'Chiller Bay 1',
-    'Chiller Bay 2',
-    'Cold Vault',
-    'Loading Dock',
-    'Ripening Room',
-    'Receiving Bay',
-  ])
-  const [categories, setCategories] = useState(['Produce', 'Frozen goods', 'Fresh Meats', 'Dairy'])
+  const [sensors, setSensors] = useState<SensorRecord[]>([])
+  const [stocks, setStocks] = useState<StockRecord[]>([])
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([])
+  const [histories, setHistories] = useState<ZoneHistory[]>([])
+  const [locations, setLocations] = useState<string[]>([])
+  const [categories, setCategories] = useState<string[]>([])
+  const [error, setError] = useState<string | null>(null)
 
-  const updateSensor: InventoryContextValue['updateSensor'] = (key, updates) =>
-    setSensors((records) => records.map((record) => (record.key === key ? { ...record, ...updates } : record)))
+  const refresh = useCallback(async () => {
+    try {
+      const [batches, devices, zones, recs, products] = await Promise.all([
+        api<Page<Batch>>('/batches?limit=200'),
+        api<Page<Device>>('/devices?limit=200'),
+        api<Page<Zone>>('/zones?limit=200'),
+        api<Page<Recommendation>>('/recommendations?status=pending&limit=200'),
+        api<Page<Schemas['ProductConfig']>>('/products'),
+      ])
+      const histories = await Promise.all(
+        zones.items.map((z) => api<ZoneHistory>(`/telemetry?zone_id=${encodeURIComponent(z.id)}`)),
+      )
+      const series = new Map(histories.map((h) => [h.zone_id, h.points.map((p) => p.temperature_c)]))
+      // Most urgent pending recommendation per batch: SALVAGE outranks PRIORITY_DISPATCH.
+      const recFor = new Map<number, Recommendation>()
+      for (const r of recs.items) {
+        if (!recFor.has(r.batch_id) || r.type === 'SALVAGE') recFor.set(r.batch_id, r)
+      }
+      const zoneById = new Map(zones.items.map((z) => [z.id, z]))
+      setStocks(batches.items.map((b) => toStock(b, series.get(b.zone_id) ?? [], recFor.get(b.id) ?? null)))
+      setSensors(devices.items.map((d) => toSensor(d, zoneById.get(d.zone_id))))
+      setRecommendations(recs.items)
+      setHistories(histories)
+      setLocations(zones.items.map((z) => z.id))
+      setCategories(products.items.map((p) => p.name))
+      setError(null)
+    } catch (e) {
+      setError((e as { message?: string }).message ?? 'Cannot reach the backend at localhost:8000')
+    }
+  }, [])
 
-  const addSensor: InventoryContextValue['addSensor'] = (name, location) =>
-    setSensors((records) => {
-      const sequence = records.length + 1
-      return [
-        ...records,
-        {
-          key: `sensor-new-${Date.now()}`,
-          id: `SNS-${String(300 + sequence).padStart(3, '0')}`,
-          name,
-          location,
-          temperature: 3.5,
-          humidity: 80,
-          battery: 100,
-          signal: -55,
-          status: 'Online',
-        },
-      ]
-    })
+  useEffect(() => {
+    refresh()
+    const id = setInterval(refresh, POLL_MS)
+    return () => clearInterval(id)
+  }, [refresh])
 
-  const deleteSensor: InventoryContextValue['deleteSensor'] = (key) =>
-    setSensors((records) => records.filter((record) => record.key !== key))
+  // Every write refetches, so the screens always show what the backend stored.
+  const write = (path: string, method: string, body?: unknown) =>
+    api<unknown>(path, { method, body: body === undefined ? undefined : JSON.stringify(body) }).then(refresh)
 
-  const addLocation: InventoryContextValue['addLocation'] = (location) =>
-    setLocations((records) =>
-      records.some((record) => record.toLowerCase() === location.trim().toLowerCase())
-        ? records
-        : [...records, location.trim()],
-    )
+  const value: InventoryContextValue = {
+    sensors,
+    stocks,
+    recommendations,
+    histories,
+    locations,
+    categories,
+    error,
+    refresh,
+    updateSensor: (key, u) => write(`/devices/${key}`, 'PATCH', { name: u.name, zone_id: u.location }),
+    addSensor: async (id, name, location) => {
+      const created = await api<Schemas['DeviceCreated']>('/devices', {
+        method: 'POST',
+        body: JSON.stringify({ id, name, zone_id: location }),
+      })
+      await refresh()
+      return created.api_key
+    },
+    deleteSensor: (key) => write(`/devices/${key}`, 'DELETE'),
+    updateStock: (key, u) =>
+      write(`/batches/${key}`, 'PATCH', { code: u.identifier, zone_id: u.zone, notes: u.detail || null, quantity: u.units }),
+    deleteStock: (key) => write(`/batches/${key}`, 'DELETE'),
+    addStock: ({ code, zone, units, detail, printedExpiration }) =>
+      write('/batches', 'POST', {
+        code,
+        product_id: 'chicken-breast',
+        zone_id: zone,
+        received_at: new Date().toISOString(),
+        printed_expiry: new Date(`${printedExpiration}T23:59:59`).toISOString(),
+        quantity: units,
+        notes: detail || null,
+      }),
+    decide: (recId, decision, note) => write(`/recommendations/${recId}/decision`, 'POST', { decision, note: note ?? null }),
+  }
 
-  const addCategory: InventoryContextValue['addCategory'] = (category) =>
-    setCategories((records) =>
-      records.some((record) => record.toLowerCase() === category.trim().toLowerCase())
-        ? records
-        : [...records, category.trim()],
-    )
-
-  const deleteLocation: InventoryContextValue['deleteLocation'] = (location) =>
-    setLocations((records) => records.filter((record) => record !== location))
-
-  const deleteCategory: InventoryContextValue['deleteCategory'] = (category) =>
-    setCategories((records) => records.filter((record) => record !== category))
-
-  const updateStock: InventoryContextValue['updateStock'] = (key, updates) =>
-    setStocks((records) => records.map((record) => (record.key === key ? { ...record, ...updates } : record)))
-
-  const deleteStock: InventoryContextValue['deleteStock'] = (key) =>
-    setStocks((records) => records.filter((record) => record.key !== key))
-
-  const addStock: InventoryContextValue['addStock'] = ({
-    product,
-    zone,
-    units,
-    value = 0,
-    batchId,
-    category,
-    detail,
-    identifier,
-    printedExpiration,
-  }) =>
-    setStocks((records) => {
-      const sequence = records.length + 1
-      const id = batchId || `N-${String(sequence).padStart(3, '0')}`
-      const expirationTime = printedExpiration
-        ? new Date(`${printedExpiration}T23:59:59`).getTime()
-        : Date.now() + 72 * 60 * 60 * 1000
-      const printedHours = Math.max(1, Math.ceil((expirationTime - Date.now()) / (60 * 60 * 1000)))
-      return [
-        ...records,
-        {
-          key: `stock-new-${Date.now()}`,
-          id,
-          product,
-          zone,
-          units,
-          value,
-          avgTemp: 3.5,
-          peakTemp: 3.8,
-          peakAt: 0,
-          breach: null,
-          staticHours: printedHours,
-          dynamicHours: printedHours,
-          demand: 50,
-          rec: 'New stock received · awaiting warehouse review',
-          confidence: 100,
-          saves: 0,
-          action: 'review',
-          category: category || 'New inventory',
-          detail: detail || 'Newly created stock record',
-          identifier: identifier || `STK-NEW-${String(sequence).padStart(4, '0')}`,
-          activity: {
-            state: 'stored',
-            label: 'Received',
-            detail: 'Awaiting put-away confirmation',
-            updated: 'Just now',
-          },
-        },
-      ]
-    })
-
-  return (
-    <InventoryContext.Provider
-      value={{
-        sensors,
-        stocks,
-        locations,
-        categories,
-        updateSensor,
-        addSensor,
-        deleteSensor,
-        addLocation,
-        addCategory,
-        deleteLocation,
-        deleteCategory,
-        updateStock,
-        deleteStock,
-        addStock,
-      }}
-    >
-      {children}
-    </InventoryContext.Provider>
-  )
+  return <InventoryContext.Provider value={value}>{children}</InventoryContext.Provider>
 }
 
 export function useInventory() {

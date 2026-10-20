@@ -143,3 +143,51 @@ export function Checkbox({
     </button>
   )
 }
+
+/** Destructive-action confirmation. The backend soft-deletes, so the record stays in the change history. */
+export function ConfirmDelete({
+  title,
+  body,
+  confirmLabel,
+  onConfirm,
+  onCancel,
+}: {
+  title: string
+  body: string
+  confirmLabel: string
+  onConfirm: () => Promise<void>
+  onCancel: () => void
+}) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  return (
+    <div className="absolute inset-0 z-50 grid place-items-center bg-night/75 backdrop-blur-sm">
+      <div role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" className="w-[400px] rounded-[18px] border border-line bg-surface p-6">
+        <p id="confirm-title" className="text-[15px] font-bold text-fg">{title}</p>
+        <p className="mt-2 text-[11px] leading-relaxed text-muted">{body}</p>
+        {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-2.5 py-2 text-[10px] font-semibold text-danger">{error}</p>}
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" autoFocus onClick={onCancel} className="h-10 rounded-lg border border-line px-4 text-[11px] font-semibold text-fg">
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true)
+              try {
+                await onConfirm()
+              } catch (e) {
+                setError((e as { message?: string }).message ?? 'Unable to delete. Try again.')
+                setBusy(false)
+              }
+            }}
+            className="h-10 rounded-lg bg-danger px-4 text-[11px] font-bold text-white disabled:opacity-50"
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -1,18 +1,14 @@
 import { AlertTriangle, ArrowRight, Clock3 } from 'lucide-react'
 import { useInventory } from '../data/InventoryContext'
-import { isPriorityDispatchCandidate, PRIORITY_DISPATCH_HOURS } from '../data/dispatch'
 import { ArrowButton, card, CardTitle } from './ui'
-
-const money = (value: number) => `$${value.toLocaleString('en-US')}`
 
 export default function QueueCard({ onOpenQueue }: { onOpenQueue: () => void }) {
   const { stocks } = useInventory()
   const atRiskProducts = stocks
-    .filter(isPriorityDispatchCandidate)
+    .filter((batch) => batch.recommendation)
     .sort((a, b) => a.dynamicHours - b.dynamicHours)
     .slice(0, 5)
   const totalUnits = atRiskProducts.reduce((sum, batch) => sum + batch.units, 0)
-  const totalValue = atRiskProducts.reduce((sum, batch) => sum + batch.value, 0)
 
   return (
     <section className={`${card} flex min-h-0 flex-1 flex-col p-5`}>
@@ -30,7 +26,7 @@ export default function QueueCard({ onOpenQueue }: { onOpenQueue: () => void }) 
             {atRiskProducts.length} require attention
           </span>
           <p className="line-clamp-2 min-w-0 text-[10px] leading-snug text-muted">
-            Breached stock and batches within the next {PRIORITY_DISPATCH_HOURS} hours, ranked by remaining life.
+            Batches with a pending dispatch or salvage recommendation, ranked by remaining life.
           </p>
         </div>
       </header>
@@ -38,13 +34,14 @@ export default function QueueCard({ onOpenQueue }: { onOpenQueue: () => void }) 
       <div className="mt-3 grid grid-cols-[1fr_72px_68px] gap-2 border-b border-line px-1 pb-2 font-mono text-[9px] uppercase tracking-[0.08em] text-muted">
         <span>Product &amp; exposure</span>
         <span>RUL</span>
-        <span className="text-right">At risk</span>
+        <span className="text-right">Action</span>
       </div>
 
       <ul className="min-h-0 flex-1 divide-y divide-line overflow-y-auto overscroll-contain [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]">
         {atRiskProducts.map((batch) => {
-          const critical = batch.breach === 'critical' || batch.dynamicHours <= 14
-          const loss = Math.round(((batch.staticHours - batch.dynamicHours) / batch.staticHours) * 100)
+          const salvage = batch.recommendation?.type === 'SALVAGE'
+          const critical = salvage || batch.breach === 'critical'
+          const loss = Math.max(0, Math.round(((batch.staticHours - batch.dynamicHours) / Math.max(1, batch.staticHours)) * 100))
 
           return (
             <li key={batch.id} className="grid h-[50px] grid-cols-[1fr_72px_68px] items-center gap-2 px-1">
@@ -69,8 +66,8 @@ export default function QueueCard({ onOpenQueue }: { onOpenQueue: () => void }) 
               </div>
 
               <div className="text-right">
-                <p className="font-mono text-[10.5px] font-semibold text-fg">{money(batch.value)}</p>
-                <p className="mt-0.5 font-mono text-[8px] text-muted">{batch.demand}/100 demand</p>
+                <p className={`font-mono text-[10.5px] font-semibold ${salvage ? 'text-danger' : 'text-fg'}`}>{salvage ? 'Salvage' : 'Dispatch'}</p>
+                <p className="mt-0.5 font-mono text-[8px] text-muted">pending</p>
               </div>
             </li>
           )
@@ -85,7 +82,7 @@ export default function QueueCard({ onOpenQueue }: { onOpenQueue: () => void }) 
           <p className="min-w-0 leading-tight">
             <span className="block font-mono text-[9px] uppercase tracking-[0.08em] text-muted">Current exposure</span>
             <span className="block truncate text-[10px] text-muted">
-              <span className="font-mono font-semibold text-fg">{totalUnits} units</span> · {money(totalValue)} value
+              <span className="font-mono font-semibold text-fg">{totalUnits} units</span> awaiting a decision
             </span>
           </p>
         </div>

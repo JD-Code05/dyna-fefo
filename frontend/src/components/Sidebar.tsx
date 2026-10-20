@@ -2,11 +2,6 @@ import { useState, type FormEvent } from 'react'
 import { Boxes, Check, ChevronRight, Plus, Radio, Smartphone, X } from 'lucide-react'
 import { useInventory } from '../data/InventoryContext'
 
-const reminders = [
-  { count: 3, label: 'Thermal irregularities', tone: 'bg-danger' },
-  { count: 5, label: 'Batches under 48h RUL', tone: 'bg-warn' },
-  { count: 7, label: 'Dispatch reviews pending', tone: 'bg-sky' },
-]
 
 type AddType = 'sensor' | 'stock'
 
@@ -16,33 +11,42 @@ const addOptions = [
 ] as const
 
 export default function Sidebar({ onOpenMobile }: { onOpenMobile: () => void }) {
-  const { addSensor, addStock, locations, categories } = useInventory()
+  const { addSensor, addStock, locations, sensors, stocks, recommendations } = useInventory()
   const [adding, setAdding] = useState<AddType | null>(null)
   const [added, setAdded] = useState('')
+  const [error, setError] = useState('')
+  const reminders = [
+    { count: sensors.filter((s) => s.status === 'Critical').length, label: 'Thermal irregularities', tone: 'bg-danger' },
+    { count: stocks.filter((b) => b.activity.state === 'stored' && b.dynamicHours < 48).length, label: 'Batches under 48h RUL', tone: 'bg-warn' },
+    { count: recommendations.length, label: 'Dispatch reviews pending', tone: 'bg-sky' },
+  ]
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!adding) return
     const data = new FormData(event.currentTarget)
-    const primary = String(data.get('primary') ?? '').trim()
-    const secondary = String(data.get('secondary') ?? '').trim()
-    if (adding === 'sensor') addSensor(primary, secondary)
-    if (adding === 'stock') {
-      addStock({
-        product: primary,
-        category: String(data.get('category') ?? '').trim(),
-        detail: String(data.get('detail') ?? '').trim(),
-        identifier: String(data.get('identifier') ?? '').trim(),
-        zone: String(data.get('location') ?? '').trim(),
-        units: Number.parseInt(secondary, 10) || 0,
-        value: Number.parseFloat(String(data.get('value') ?? '0')) || 0,
-        printedExpiration: String(data.get('printedExpiration') ?? ''),
-      })
+    const get = (key: string) => String(data.get(key) ?? '').trim()
+    setError('')
+    try {
+      if (adding === 'sensor') {
+        const key = await addSensor(get('deviceId'), get('primary'), get('secondary'))
+        // The backend shows the device key only once; the sensor needs it for HTTP ingest.
+        setAdded(`Sensor added · device key: ${key}`)
+      } else {
+        await addStock({
+          code: get('primary'),
+          detail: get('detail'),
+          zone: get('location'),
+          units: Number.parseInt(get('secondary'), 10) || 0,
+          printedExpiration: get('printedExpiration'),
+        })
+        setAdded('Stock added')
+        window.setTimeout(() => setAdded(''), 2200)
+      }
+      setAdding(null)
+    } catch (e) {
+      setError((e as { message?: string }).message ?? 'Unable to save. Check the backend is running and try again.')
     }
-    const label = addOptions.find((option) => option.id === adding)?.label ?? 'Item'
-    setAdded(`${label} added`)
-    setAdding(null)
-    window.setTimeout(() => setAdded(''), 2200)
   }
 
   return (
@@ -97,24 +101,14 @@ export default function Sidebar({ onOpenMobile }: { onOpenMobile: () => void }) 
               required
               autoFocus
               name="primary"
-              aria-label={adding === 'sensor' ? 'Sensor name' : adding === 'stock' ? 'Product name' : 'Batch name'}
-              placeholder={adding === 'sensor' ? 'Sensor name' : adding === 'stock' ? 'Product name' : 'Batch ID'}
+              aria-label={adding === 'sensor' ? 'Sensor name' : 'Batch code'}
+              placeholder={adding === 'sensor' ? 'Sensor name · Chiller A Probe 03' : 'Batch code · CHK-005'}
               className="mt-2 h-9 w-full rounded-lg border border-line bg-night px-2.5 text-[10px] text-fg outline-none placeholder:text-muted focus:border-sky/50"
             />
             {adding === 'stock' ? (
               <>
-                <select
-                  required
-                  name="category"
-                  aria-label="Stock category"
-                  defaultValue=""
-                  className="mt-1.5 h-8 w-full rounded-lg border border-line bg-night px-2.5 text-[9px] text-fg outline-none focus:border-sky/50"
-                >
-                  <option value="" disabled>Choose category</option>
-                  {categories.map((category) => <option key={category} value={category}>{category}</option>)}
-                </select>
-                <input required name="detail" aria-label="Stock packaging details" placeholder="Details · 12 × 125g packs" className="mt-1.5 h-8 w-full rounded-lg border border-line bg-night px-2.5 text-[9px] text-fg outline-none placeholder:text-muted focus:border-sky/50" />
-                <input required name="identifier" aria-label="Stock identification number" placeholder="Identification number" className="mt-1.5 h-8 w-full rounded-lg border border-line bg-night px-2.5 text-[9px] text-fg outline-none placeholder:text-muted focus:border-sky/50" />
+                <p className="mt-1.5 font-mono text-[8px] uppercase tracking-[0.06em] text-muted">Product · Fresh chicken breast</p>
+                <input name="detail" aria-label="Notes" placeholder="Notes · 12 × 500g trays" className="mt-1.5 h-8 w-full rounded-lg border border-line bg-night px-2.5 text-[9px] text-fg outline-none placeholder:text-muted focus:border-sky/50" />
                 <select required name="location" aria-label="Stock location" defaultValue="" className="mt-1.5 h-8 w-full rounded-lg border border-line bg-night px-2.5 text-[9px] text-fg outline-none focus:border-sky/50">
                   <option value="" disabled>Choose warehouse location</option>
                   {locations.map((location) => <option key={location} value={location}>{location}</option>)}
@@ -129,12 +123,19 @@ export default function Sidebar({ onOpenMobile }: { onOpenMobile: () => void }) 
                     className="mt-1 h-8 w-full rounded-lg border border-line bg-night px-2.5 font-sans text-[9px] normal-case tracking-normal text-fg outline-none focus:border-sky/50"
                   />
                 </label>
-                <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-                  <input required name="secondary" type="number" min="1" aria-label="Stock quantity" placeholder="Quantity" className="h-8 min-w-0 rounded-lg border border-line bg-night px-2.5 text-[9px] text-fg outline-none placeholder:text-muted focus:border-sky/50" />
-                  <input required name="value" type="number" min="0" step="0.01" aria-label="Stock value" placeholder="Value $" className="h-8 min-w-0 rounded-lg border border-line bg-night px-2.5 text-[9px] text-fg outline-none placeholder:text-muted focus:border-sky/50" />
-                </div>
+                <input required name="secondary" type="number" min="1" aria-label="Stock quantity" placeholder="Quantity (units)" className="mt-1.5 h-8 w-full rounded-lg border border-line bg-night px-2.5 text-[9px] text-fg outline-none placeholder:text-muted focus:border-sky/50" />
               </>
             ) : (
+              <>
+              <input
+                required
+                name="deviceId"
+                pattern="[a-z0-9\-]{3,64}"
+                title="3–64 lowercase letters, digits or dashes"
+                aria-label="Device ID"
+                placeholder="Device ID · esp32-chiller-03"
+                className="mt-1.5 h-8 w-full rounded-lg border border-line bg-night px-2.5 font-mono text-[9px] text-fg outline-none placeholder:text-muted focus:border-sky/50"
+              />
               <select
                 required
                 name="secondary"
@@ -145,6 +146,12 @@ export default function Sidebar({ onOpenMobile }: { onOpenMobile: () => void }) 
                 <option value="" disabled>Choose warehouse location</option>
                 {locations.map((location) => <option key={location} value={location}>{location}</option>)}
               </select>
+              </>
+            )}
+            {error && (
+              <p role="alert" className="mt-2 rounded-lg bg-danger/10 px-2 py-1.5 text-[8.5px] font-semibold text-danger">
+                {error}
+              </p>
             )}
             <button
               type="submit"
@@ -172,9 +179,12 @@ export default function Sidebar({ onOpenMobile }: { onOpenMobile: () => void }) 
         )}
 
         {added && !adding && (
-          <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-ok/10 px-2 py-1.5 text-[8.5px] font-semibold text-ok">
-            <Check className="size-3" strokeWidth={2.5} />
-            {added}
+          <p role="status" className="mt-2 flex items-start gap-1.5 break-all rounded-lg bg-ok/10 px-2 py-1.5 text-[8.5px] font-semibold text-ok">
+            <Check className="size-3 shrink-0" strokeWidth={2.5} />
+            <span className="flex-1">{added}</span>
+            <button type="button" onClick={() => setAdded('')} aria-label="Dismiss message" className="shrink-0 text-ok/80 hover:text-ok">
+              <X className="size-3" />
+            </button>
           </p>
         )}
       </section>

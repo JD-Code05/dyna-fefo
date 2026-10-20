@@ -148,80 +148,23 @@ function AppearanceSettings({ theme, onChange }: { theme: 'dark' | 'light'; onCh
 }
 
 function WarehouseSetupSettings() {
-  const {
-    locations,
-    categories,
-    addLocation,
-    addCategory,
-    deleteLocation,
-    deleteCategory,
-  } = useInventory()
-  const [location, setLocation] = useState('')
-  const [category, setCategory] = useState('')
+  const { locations, categories } = useInventory()
 
   return (
     <div>
       <SectionIntro
-        title="Locations and stock categories"
-        detail="Manage the options available when adding sensors, receiving batches, and creating stock."
+        title="Locations and products"
+        detail="Zones and products come from the backend. Sensors and batches can only use these."
       />
       <div className="grid grid-cols-2 gap-4">
-        <SetupList
-          title="Warehouse locations"
-          detail={`${locations.length} locations available`}
-          icon={<MapPin className="size-4" />}
-          items={locations}
-          value={location}
-          placeholder="Add a location"
-          onChange={setLocation}
-          onAdd={() => {
-            if (!location.trim()) return
-            addLocation(location)
-            setLocation('')
-          }}
-          onDelete={deleteLocation}
-        />
-        <SetupList
-          title="Stock categories"
-          detail={`${categories.length} categories available`}
-          icon={<Tags className="size-4" />}
-          items={categories}
-          value={category}
-          placeholder="Add a category"
-          onChange={setCategory}
-          onAdd={() => {
-            if (!category.trim()) return
-            addCategory(category)
-            setCategory('')
-          }}
-          onDelete={deleteCategory}
-        />
+        <SetupList title="Zones" detail={`${locations.length} zones`} icon={<MapPin className="size-4" />} items={locations} />
+        <SetupList title="Products" detail={`${categories.length} products`} icon={<Tags className="size-4" />} items={categories} />
       </div>
     </div>
   )
 }
 
-function SetupList({
-  title,
-  detail,
-  icon,
-  items,
-  value,
-  placeholder,
-  onChange,
-  onAdd,
-  onDelete,
-}: {
-  title: string
-  detail: string
-  icon: ReactNode
-  items: string[]
-  value: string
-  placeholder: string
-  onChange: (value: string) => void
-  onAdd: () => void
-  onDelete: (item: string) => void
-}) {
+function SetupList({ title, detail, icon, items }: { title: string; detail: string; icon: ReactNode; items: string[] }) {
   return (
     <section className="rounded-xl border border-line bg-night/40 p-4">
       <div className="flex items-center gap-2">
@@ -231,35 +174,13 @@ function SetupList({
           <p className="mt-0.5 text-[8.5px] text-muted">{detail}</p>
         </div>
       </div>
-      <ul className="mt-4 h-[250px] space-y-1 overflow-y-auto pr-1">
+      <ul className="mt-4 max-h-[250px] space-y-1 overflow-y-auto pr-1">
         {items.map((item) => (
-          <li key={item} className="flex h-8 items-center rounded-lg border border-line bg-surface pl-2.5 pr-1 text-[9.5px] text-fg">
-            <span className="min-w-0 flex-1 truncate">{item}</span>
-            <button
-              type="button"
-              onClick={() => onDelete(item)}
-              aria-label={`Delete ${item}`}
-              className="grid size-6 shrink-0 place-items-center rounded-md text-muted hover:bg-danger/10 hover:text-danger"
-            >
-              <Trash2 className="size-3" />
-            </button>
+          <li key={item} className="flex h-8 items-center rounded-lg border border-line bg-surface px-2.5 text-[9.5px] text-fg">
+            <span className="min-w-0 flex-1 truncate" title={item}>{item}</span>
           </li>
         ))}
       </ul>
-      <div className="mt-3 flex gap-2">
-        <input
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') onAdd()
-          }}
-          placeholder={placeholder}
-          className="h-9 min-w-0 flex-1 rounded-lg border border-line bg-night px-2.5 text-[9.5px] text-fg outline-none placeholder:text-muted focus:border-sky/50"
-        />
-        <button type="button" onClick={onAdd} className="flex h-9 items-center gap-1.5 rounded-lg bg-sky px-3 text-[9px] font-bold text-night">
-          <Plus className="size-3.5" /> Add
-        </button>
-      </div>
     </section>
   )
 }

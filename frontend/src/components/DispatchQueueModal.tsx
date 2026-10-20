@@ -1,16 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, Eye, Flag, Search, ShieldAlert, Truck, Undo2, X } from 'lucide-react'
+import { Check, Eye, Flag, Search, ShieldAlert, Truck, X } from 'lucide-react'
 import { Checkbox } from './ui'
-import {
-  HIGH_VALUE,
-  isPriorityDispatchCandidate,
-  temperatureSeries,
-  type Action,
-  type DispatchBatch,
-} from '../data/dispatch'
-import { useInventory } from '../data/InventoryContext'
+import { type Action } from '../data/dispatch'
+import { useInventory, type StockRecord } from '../data/InventoryContext'
 
-type Filter = 'all' | 'breached' | 'high'
+type Filter = 'all' | 'breached' | 'salvage'
 type Status = 'confirmed' | 'reviewed' | 'audit'
 
 const COLS = 'grid-cols-[18px_190px_170px_190px_minmax(0,1fr)_210px]'
@@ -21,22 +15,22 @@ const actionMeta: Record<
   { label: string; done: Status; button: string; icon: typeof Truck; iconTone: string }
 > = {
   dispatch: {
-    label: 'Confirm FEFO Dispatch',
+    label: 'Approve Dispatch',
     done: 'confirmed',
     button: 'bg-sky/10 text-sky ring-1 ring-inset ring-sky/20 hover:bg-sky/15',
     icon: Truck,
     iconTone: 'bg-sky/12 text-sky',
   },
   review: {
-    label: 'Review Risk Details',
+    label: 'Mark Reviewed',
     done: 'reviewed',
     button: 'bg-warn/10 text-warn ring-1 ring-inset ring-warn/20 hover:bg-warn/15',
     icon: Eye,
     iconTone: 'bg-warn/12 text-warn',
   },
   audit: {
-    label: 'Reject / Manual Audit',
-    done: 'audit',
+    label: 'Approve Salvage',
+    done: 'confirmed',
     button: 'text-danger ring-1 ring-inset ring-danger/60 hover:bg-danger/10',
     icon: ShieldAlert,
     iconTone: 'bg-danger/15 text-danger',
@@ -44,22 +38,23 @@ const actionMeta: Record<
 }
 
 const statusLabel: Record<Status, string> = {
-  confirmed: 'Dispatch confirmed',
-  reviewed: 'Risk reviewed',
-  audit: 'Sent to audit',
+  confirmed: 'Approved',
+  reviewed: 'Reviewed',
+  audit: 'Rejected',
 }
 
-const money = (n: number) => `$${n.toLocaleString('en-US')}`
+const shortDate = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleString('en-US', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : '—'
 
 export default function DispatchQueueModal({ onClose }: { onClose: () => void }) {
-  const { stocks } = useInventory()
-  const atRiskBatches = useMemo(
-    () => stocks.filter(isPriorityDispatchCandidate),
-    [stocks],
-  )
+  const { stocks, decide } = useInventory()
+  const atRiskBatches = useMemo(() => stocks.filter((b) => b.recommendation || b.breach), [stocks])
+  // A batch can have a dispatch and a salvage recommendation; key decisions by recommendation.
+  const rowKey = (b: StockRecord) => (b.recommendation ? `rec-${b.recommendation.id}` : b.id)
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
-  const [selected, setSelected] = useState<string[]>(['B-409', 'G-218'])
+  const [selected, setSelected] = useState<string[]>([])
+  const [error, setError] = useState<string | null>(null)
   const [statuses, setStatuses] = useState<Record<string, Status>>({})
   const searchRef = useRef<HTMLInputElement>(null)
 
@@ -73,25 +68,25 @@ export default function DispatchQueueModal({ onClose }: { onClose: () => void })
   const counts = {
     all: atRiskBatches.length,
     breached: atRiskBatches.filter((b) => b.breach).length,
-    high: atRiskBatches.filter((b) => b.value >= HIGH_VALUE).length,
+    salvage: atRiskBatches.filter((b) => b.recommendation?.type === 'SALVAGE').length,
   }
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase()
     return atRiskBatches.filter((b) => {
       if (filter === 'breached' && !b.breach) return false
-      if (filter === 'high' && b.value < HIGH_VALUE) return false
+      if (filter === 'salvage' && b.recommendation?.type !== 'SALVAGE') return false
       if (!q) return true
       return [b.id, b.product, b.zone, b.rec].some((f) => f.toLowerCase().includes(q))
     })
   }, [atRiskBatches, filter, query])
 
-  const pendingRows = rows.filter((r) => !statuses[r.id])
-  const selectedPending = selected.filter((id) => !statuses[id])
+  const pendingRows = rows.filter((r) => !statuses[rowKey(r)])
+  const selectedPending = selected.filter((id) => { const b = atRiskBatches.find((x) => x.id === id); return b && !statuses[rowKey(b)] })
   const selectedBatches = atRiskBatches.filter((b) => selectedPending.includes(b.id))
   const allVisibleSelected = pendingRows.length > 0 && pendingRows.every((r) => selected.includes(r.id))
   const someVisibleSelected = pendingRows.some((r) => selected.includes(r.id))
-  const atRisk = atRiskBatches.filter((b) => !statuses[b.id]).reduce((s, b) => s + b.value, 0)
+  const atRiskUnits = atRiskBatches.filter((b) => !statuses[rowKey(b)]).reduce((s, b) => s + b.units, 0)
 
   const toggle = (id: string) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
@@ -101,23 +96,22 @@ export default function DispatchQueueModal({ onClose }: { onClose: () => void })
         ? s.filter((id) => !pendingRows.some((r) => r.id === id))
         : [...new Set([...s, ...pendingRows.map((r) => r.id)])],
     )
-  const resolve = (ids: string[], status?: Status) => {
-    setStatuses((st) => {
-      const next = { ...st }
-      for (const id of ids) {
-        const b = atRiskBatches.find((x) => x.id === id)
-        if (b) next[id] = status ?? actionMeta[b.action].done
+  // Approve/reject is recorded by the backend (and in the change history); it cannot be undone.
+  const resolve = async (ids: string[], status?: Status) => {
+    setError(null)
+    for (const id of ids) {
+      const b = atRiskBatches.find((x) => x.id === id)
+      if (!b) continue
+      const done = status ?? actionMeta[b.action].done
+      try {
+        if (b.recommendation) await decide(b.recommendation.id, done === 'audit' ? 'reject' : 'approve')
+        setStatuses((st) => ({ ...st, [rowKey(b)]: done }))
+      } catch (e) {
+        setError(`${b.id}: ${(e as { message?: string }).message ?? 'Unable to save the decision'}`)
       }
-      return next
-    })
+    }
     setSelected((s) => s.filter((id) => !ids.includes(id)))
   }
-  const undo = (id: string) =>
-    setStatuses((st) => {
-      const next = { ...st }
-      delete next[id]
-      return next
-    })
 
   return (
     <div
@@ -146,9 +140,9 @@ export default function DispatchQueueModal({ onClose }: { onClose: () => void })
               </h2>
             </div>
             <div className="flex items-center gap-2">
-              <Stat label="To review" value={String(atRiskBatches.length - Object.keys(statuses).length)} />
+              <Stat label="To review" value={String(atRiskBatches.filter((b) => !statuses[rowKey(b)]).length)} />
               <Stat label="Breached" value={String(counts.breached)} tone="text-danger" />
-              <Stat label="Value at risk" value={money(atRisk)} tone="text-warn" />
+              <Stat label="Units at risk" value={String(atRiskUnits)} tone="text-warn" />
               <button
                 type="button"
                 onClick={onClose}
@@ -166,7 +160,7 @@ export default function DispatchQueueModal({ onClose }: { onClose: () => void })
                 [
                   ['all', 'All At-Risk'],
                   ['breached', 'Temp Breaches'],
-                  ['high', 'High Value'],
+                  ['salvage', 'Salvage'],
                 ] as const
               ).map(([key, label]) => {
                 const on = filter === key
@@ -246,11 +240,10 @@ export default function DispatchQueueModal({ onClose }: { onClose: () => void })
               key={b.id}
               batch={b}
               selected={selected.includes(b.id)}
-              status={statuses[b.id]}
+              status={statuses[rowKey(b)]}
               onToggle={() => toggle(b.id)}
               onPrimary={() => resolve([b.id])}
               onAudit={() => resolve([b.id], 'audit')}
-              onUndo={() => undo(b.id)}
             />
           ))}
           {rows.length === 0 && (
@@ -276,9 +269,8 @@ export default function DispatchQueueModal({ onClose }: { onClose: () => void })
             </div>
           </div>
           <span className="h-8 w-px bg-white/10" />
-          <p className="font-mono text-[11px] text-muted">
-            Est. loss prevented{' '}
-            <span className="font-bold text-ok">{money(selectedBatches.reduce((s, b) => s + b.saves, 0))}</span>
+          <p role="status" className={`font-mono text-[11px] ${error ? 'text-danger' : 'text-muted'}`}>
+            {error ?? `${selectedBatches.reduce((s, b) => s + b.units, 0)} units selected`}
           </p>
 
           <div className="ml-auto flex items-center gap-2">
@@ -297,7 +289,7 @@ export default function DispatchQueueModal({ onClose }: { onClose: () => void })
               className="flex h-10 items-center gap-2 rounded-full px-4 text-[12.5px] font-semibold text-fg/90 ring-1 ring-inset ring-white/15 hover:bg-white/5 disabled:opacity-40"
             >
               <Flag className="size-4" strokeWidth={2.2} />
-              Send to Manual Audit
+              Reject Selected
             </button>
             <button
               type="button"
@@ -306,7 +298,7 @@ export default function DispatchQueueModal({ onClose }: { onClose: () => void })
               className="flex h-10 items-center gap-2 rounded-full bg-sky/10 px-5 text-[13px] font-bold text-sky ring-1 ring-inset ring-sky/20 transition hover:bg-sky/15 active:scale-[0.98] disabled:bg-white/10 disabled:text-muted disabled:ring-0"
             >
               <Check className="size-4" strokeWidth={2.8} />
-              Mark Reviewed ({selectedPending.length})
+              Approve Selected ({selectedPending.length})
             </button>
           </div>
         </footer>
@@ -331,19 +323,18 @@ function Row({
   onToggle,
   onPrimary,
   onAudit,
-  onUndo,
 }: {
-  batch: DispatchBatch
+  batch: StockRecord
   selected: boolean
   status?: Status
   onToggle: () => void
   onPrimary: () => void
   onAudit: () => void
-  onUndo: () => void
 }) {
   const meta = actionMeta[b.action]
   const RecIcon = meta.icon
-  const gap = Math.round(((b.dynamicHours - b.staticHours) / b.staticHours) * 100)
+  const staticH = Math.max(1, b.staticHours)
+  const gap = Math.round(((b.dynamicHours - staticH) / staticH) * 100)
   const surface = 'bg-raised/45 ring-line'
   const accent = b.breach === 'critical' ? 'bg-danger/75' : b.breach === 'spike' ? 'bg-warn/75' : 'bg-muted/30'
   const gapTone =
@@ -385,7 +376,7 @@ function Row({
         </div>
         <p className="mt-0.5 truncate text-[13.5px] font-bold">{b.product}</p>
         <p className="truncate font-mono text-[10px] text-muted">
-          {b.zone} · {b.units}u · {money(b.value)}
+          {b.zone} · {b.units} units
         </p>
       </div>
 
@@ -421,7 +412,7 @@ function Row({
         </div>
         <div className="mt-1.5 flex items-center gap-2">
           <div className="flex h-2 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
-            <div className="h-full rounded-l-full bg-sky" style={{ width: `${(b.dynamicHours / b.staticHours) * 100}%` }} />
+            <div className="h-full rounded-l-full bg-sky" style={{ width: `${Math.min(100, (b.dynamicHours / staticH) * 100)}%` }} />
             <div
               className={`h-full flex-1 ${gap <= -35 ? 'hatch-danger' : gap <= -15 ? 'hatch-warn' : 'hatch-muted'}`}
             />
@@ -438,7 +429,7 @@ function Row({
         <div className="min-w-0">
           <p className="line-clamp-2 text-[12px] font-semibold leading-[1.3] text-fg/90">{b.rec}</p>
           <p className="mt-0.5 font-mono text-[10px] text-muted">
-            Conf. {b.confidence}% · saves <span className="text-ok">{money(b.saves)}</span>
+            Predicted expiry {shortDate(b.predictedExpiry)}
           </p>
         </div>
       </div>
@@ -446,21 +437,10 @@ function Row({
       {/* Controls */}
       <div className="flex items-center gap-1.5">
         {status ? (
-          <>
-            <span className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full bg-white/[0.07] text-[12px] font-bold text-fg/90">
-              <Check className="size-3.5 text-ok" strokeWidth={3} />
-              {statusLabel[status]}
-            </span>
-            <button
-              type="button"
-              onClick={onUndo}
-              aria-label={`Undo decision for ${b.id}`}
-              title="Undo"
-              className="grid size-9 shrink-0 place-items-center rounded-full text-white/60 ring-1 ring-inset ring-white/15 hover:bg-white/5 hover:text-fg"
-            >
-              <Undo2 className="size-4" strokeWidth={2.2} />
-            </button>
-          </>
+          <span className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full bg-white/[0.07] text-[12px] font-bold text-fg/90">
+            <Check className="size-3.5 text-ok" strokeWidth={3} />
+            {statusLabel[status]}
+          </span>
         ) : (
           <>
             <button
@@ -470,12 +450,12 @@ function Row({
             >
               {meta.label}
             </button>
-            {b.action !== 'audit' && (
+            {b.recommendation && (
               <button
                 type="button"
                 onClick={onAudit}
-                aria-label={`Reject ${b.id} and send to manual audit`}
-                title="Reject / Manual Audit"
+                aria-label={`Reject recommendation for ${b.id}`}
+                title="Reject recommendation"
                 className="grid size-9 shrink-0 place-items-center rounded-full text-white/60 ring-1 ring-inset ring-white/15 hover:bg-white/5 hover:text-danger"
               >
                 <Flag className="size-4" strokeWidth={2.2} />
@@ -488,10 +468,11 @@ function Row({
   )
 }
 
-function Sparkline({ batch }: { batch: DispatchBatch }) {
+function Sparkline({ batch }: { batch: StockRecord }) {
   const W = 72
   const H = 30
-  const series = temperatureSeries(batch)
+  const series = batch.series
+  if (series.length < 2) return <span className="w-[72px] shrink-0 font-mono text-[9px] text-muted">No readings</span>
   const y = (t: number) => H - 3 - (Math.min(Math.max(t, 0), 10) / 10) * (H - 6)
   const x = (i: number) => (i / (series.length - 1)) * W
   const d = series.map((t, i) => `${i ? 'L' : 'M'} ${x(i).toFixed(1)} ${y(t).toFixed(1)}`).join(' ')
