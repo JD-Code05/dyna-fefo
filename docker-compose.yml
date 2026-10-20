@@ -35,7 +35,7 @@ services:
     volumes:
       - ./backend:/app
       - ./data:/data:ro
-    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    command: sh -c "alembic upgrade head && python -m app.db.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     ports:
       - "8000:8000"
     depends_on:
@@ -60,6 +60,7 @@ services:
       - ./backend:/app
       - ./data:/data:ro
     command: python -m app.worker
+    restart: unless-stopped
     depends_on:
       api:
         condition: service_healthy
@@ -68,6 +69,7 @@ services:
 
   simulator:
     build: ./simulator
+    restart: unless-stopped
     environment:
       MQTT_HOST: mqtt
       SCENARIO: ${SCENARIO:-normal}
