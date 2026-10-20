@@ -1,42 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { LogIn, Snowflake } from 'lucide-react'
 import DesktopDashboard from './DesktopDashboard'
-import MobileApp from './mobile/MobileApp'
-import MobilePreview from './mobile/MobilePreview'
-
-const PHONE_QUERY = '(max-width: 640px)'
-
-function useIsPhone() {
-  const [isPhone, setIsPhone] = useState(() => window.matchMedia(PHONE_QUERY).matches)
-  useEffect(() => {
-    const mq = window.matchMedia(PHONE_QUERY)
-    const onChange = () => setIsPhone(mq.matches)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
-  return isPhone
-}
-
-function useHashView() {
-  const read = () => (window.location.hash === '#mobile' ? 'mobile' : 'desktop')
-  const [view, setView] = useState<'mobile' | 'desktop'>(read)
-  useEffect(() => {
-    const onHash = () => setView(read())
-    window.addEventListener('hashchange', onHash)
-    return () => window.removeEventListener('hashchange', onHash)
-  }, [])
-  const go = useCallback((next: 'mobile' | 'desktop') => {
-    window.location.hash = next === 'mobile' ? 'mobile' : ''
-  }, [])
-  return [view, go] as const
-}
 
 export default function App() {
-  const isPhone = useIsPhone()
-  const [view, go] = useHashView()
   const [loggedOut, setLoggedOut] = useState(false)
 
-  if (isPhone) return <MobileApp />
   if (loggedOut) {
     return (
       <main className="grid min-h-screen place-items-center bg-night p-6 font-sans text-fg">
@@ -60,11 +28,7 @@ export default function App() {
       </main>
     )
   }
-  if (view === 'mobile') return <MobilePreview onBack={() => go('desktop')} />
   return (
-    <DesktopDashboard
-      onOpenMobile={() => go('mobile')}
-      onLogout={() => setLoggedOut(true)}
-    />
+    <DesktopDashboard onLogout={() => setLoggedOut(true)} />
   )
 }

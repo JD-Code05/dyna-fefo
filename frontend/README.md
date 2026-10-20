@@ -1,6 +1,6 @@
 # FreshOps frontend
 
-Next.js 15 dashboard for the perishable-inventory system. Every desktop screen reads live data from the backend API (polling every 5 s); the mobile companion still shows sample data.
+Next.js 15 dashboard for the perishable-inventory system. Every desktop screen reads live data from the backend API (polling every 5 s).
 
 ## Run it
 

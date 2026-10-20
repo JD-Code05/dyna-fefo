@@ -32,10 +32,8 @@ function useFitScale() {
 }
 
 export default function DesktopDashboard({
-  onOpenMobile,
   onLogout,
 }: {
-  onOpenMobile: () => void
   onLogout: () => void
 }) {
   const scale = useFitScale()
@@ -82,7 +80,7 @@ export default function DesktopDashboard({
           onLogout={onLogout}
         />
         <div className="grid min-h-0 flex-1 grid-cols-[250px_minmax(0,1fr)_340px] gap-3 p-3">
-          <Sidebar onOpenMobile={onOpenMobile} />
+          <Sidebar />
 
           {activeTab === 'overview' ? (
             <>

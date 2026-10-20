@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Boxes, Check, ChevronRight, Plus, Radio, Smartphone, X } from 'lucide-react'
+import { Boxes, Check, Plus, Radio, X } from 'lucide-react'
 import { useInventory } from '../data/InventoryContext'
 
 
@@ -10,7 +10,7 @@ const addOptions = [
   { id: 'stock', label: 'New stock', icon: Boxes },
 ] as const
 
-export default function Sidebar({ onOpenMobile }: { onOpenMobile: () => void }) {
+export default function Sidebar() {
   const { addSensor, addStock, locations, sensors, stocks, recommendations } = useInventory()
   const [adding, setAdding] = useState<AddType | null>(null)
   const [added, setAdded] = useState('')
@@ -189,18 +189,6 @@ export default function Sidebar({ onOpenMobile }: { onOpenMobile: () => void }) 
         )}
       </section>
 
-      <button
-        type="button"
-        onClick={onOpenMobile}
-        className="mt-auto flex w-full items-center gap-2.5 rounded-[14px] border border-line bg-surface px-3 py-3 text-left text-[10.5px] text-muted transition-colors hover:text-fg"
-      >
-        <Smartphone className="size-4 text-sky" strokeWidth={1.8} />
-        <span>
-          <span className="block font-semibold text-fg">Mobile companion</span>
-          <span className="mt-0.5 block font-mono text-[8px] uppercase tracking-[0.06em]">Open supervisor view</span>
-        </span>
-        <ChevronRight className="ml-auto size-3.5" />
-      </button>
     </aside>
   )
 }
