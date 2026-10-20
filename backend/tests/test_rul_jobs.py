@@ -68,3 +68,12 @@ def test_unknown_product_skipped_others_computed(db, seeded, products):
     db.commit()
     states = recompute_all(db, products, NOW)
     assert len(states) == 3 and db.query(BatchState).count() == 3
+
+
+def test_future_readings_ignored(db, seeded, products):
+    b = db.query(Batch).filter_by(code="CHK-001").one()
+    add_readings(db, "chiller-a", b.received_at, [4] * 13)
+    now = b.received_at + timedelta(hours=12)
+    before = recompute_batch(db, b, products["chicken-breast"], now).effective_age_h
+    add_readings(db, "chiller-a", now + timedelta(hours=1), [30])
+    assert recompute_batch(db, b, products["chicken-breast"], now).effective_age_h == pytest.approx(before)

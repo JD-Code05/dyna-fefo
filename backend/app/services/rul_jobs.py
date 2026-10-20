@@ -20,7 +20,8 @@ def params_for(cfg: ProductConfig) -> RulParams:
 def recompute_batch(db: Session, batch: Batch, cfg: ProductConfig, now: datetime) -> BatchState:
     """Upsert the batch's state and append a history row. Flushes; the caller commits."""
     rows = db.execute(select(Telemetry.ts, Telemetry.temperature_c, Telemetry.humidity_pct)
-                      .where(Telemetry.zone_id == batch.zone_id, Telemetry.ts >= batch.received_at)
+                      .where(Telemetry.zone_id == batch.zone_id, Telemetry.ts >= batch.received_at,
+                              Telemetry.ts <= now)
                       .order_by(Telemetry.ts)).all()
     res = compute_rul([Reading(*r) for r in rows], batch.received_at, now, params_for(cfg))
     wall = datetime.now(UTC)  # write time, not the (possibly simulated) `now`
