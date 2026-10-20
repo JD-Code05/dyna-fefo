@@ -80,5 +80,14 @@ services:
       mqtt:
         condition: service_healthy
 
+  frontend:
+    build: ./frontend
+    profiles: ["ui"]
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
 volumes:
   dbdata:
