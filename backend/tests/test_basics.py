@@ -41,3 +41,42 @@ def test_unhandled_exception_uses_error_shape(client):
     r = TestClient(client.app, raise_server_exceptions=False).get("/boom")
     assert r.status_code == 500
     assert r.json()["error"] == {"code": "internal_error", "message": "Internal server error", "details": {}}
+
+
+def test_me_is_demo_supervisor(client, seeded):
+    r = client.get("/api/v1/me")
+    assert r.json() == {"id": 1, "username": "demo-supervisor", "role": "supervisor"}
+
+
+def test_me_unseeded_errors(client):
+    r = client.get("/api/v1/me")
+    assert r.status_code == 500 and r.json()["error"]["code"] == "demo_user_missing"
+
+
+def test_products_lists_chicken(client, seeded):
+    items = client.get("/api/v1/products").json()["items"]
+    assert [p["id"] for p in items] == ["chicken-breast"]
+    assert "base_price" not in items[0]
+
+
+def test_seed_is_idempotent(db):
+    from app.db.models import Batch, Device, Zone
+    from app.db.seed import seed
+
+    seed(db)
+    seed(db)
+    assert db.query(Batch).count() == 4
+    assert db.query(Device).count() == 2
+    assert db.query(Zone).count() == 2
+
+
+def test_require_role_forbids_staff():
+    import pytest
+
+    from app.core.deps import require_role
+    from app.core.errors import ApiError
+    from app.db.models import Role, User
+
+    with pytest.raises(ApiError) as e:
+        require_role(Role.supervisor)(User(username="x", role="staff"))
+    assert e.value.status == 403

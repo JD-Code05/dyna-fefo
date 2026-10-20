@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.deps import get_db
+from app.db.seed import seed
 from app.main import create_app
 
 _engine = create_engine(get_settings().test_database_url)
@@ -40,3 +41,8 @@ def client(db):
     app = create_app()
     app.dependency_overrides[get_db] = lambda: db
     return TestClient(app)
+
+
+@pytest.fixture
+def seeded(db):
+    seed(db)
