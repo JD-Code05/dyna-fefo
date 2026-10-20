@@ -87,3 +87,10 @@ def test_no_duplicate_routes():
     # this FastAPI wraps each include_router() in an _IncludedRouter; the same router twice duplicates its routes
     routers = [id(r.original_router) for r in create_app().routes if hasattr(r, "original_router")]
     assert routers and len(routers) == len(set(routers))
+
+
+def test_openapi_422_uses_error_schema(client):
+    spec = client.get("/openapi.json").json()
+    ref = spec["paths"]["/api/v1/batches"]["post"]["responses"]["422"]["content"]["application/json"]["schema"]["$ref"]
+    assert ref.endswith("/ErrorOut")
+    assert "HTTPValidationError" not in str(spec["paths"])

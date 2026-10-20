@@ -14,10 +14,11 @@ from app.api.v1 import (
 )
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
+from app.schemas.common import ErrorOut
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="dyna-fefo")
+    app = FastAPI(title="dyna-fefo", responses={s: {"model": ErrorOut} for s in (404, 409, 422)})
     app.add_middleware(
         CORSMiddleware,
         allow_origins=get_settings().cors_origins,
