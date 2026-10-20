@@ -1,8 +1,12 @@
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
+log = logging.getLogger(__name__)
 
 
 class ApiError(Exception):
@@ -11,7 +15,7 @@ class ApiError(Exception):
 
 
 def _resp(status: int, code: str, message: str, details=None) -> JSONResponse:
-    return JSONResponse(status_code=status, content={"error": {"code": code, "message": message, "details": details}})
+    return JSONResponse(status_code=status, content={"error": {"code": code, "message": message, "details": details or {}}})
 
 
 def register_error_handlers(app: FastAPI) -> None:
@@ -27,3 +31,8 @@ def register_error_handlers(app: FastAPI) -> None:
     async def _http(_: Request, e: StarletteHTTPException):
         code = "not_found" if e.status_code == 404 else "http_error"
         return _resp(e.status_code, code, str(e.detail))
+
+    @app.exception_handler(Exception)
+    async def _unhandled(_: Request, e: Exception):
+        log.exception("unhandled error", exc_info=e)
+        return _resp(500, "internal_error", "Internal server error")
