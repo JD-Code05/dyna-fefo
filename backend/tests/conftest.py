@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.deps import get_db
+from app.core.products import load_products
 from app.db.seed import seed
 from app.main import create_app
 
@@ -57,3 +58,8 @@ def client(db):
 @pytest.fixture
 def seeded(db):
     seed(db)
+
+
+@pytest.fixture
+def products():
+    return load_products(get_settings().products_path)
