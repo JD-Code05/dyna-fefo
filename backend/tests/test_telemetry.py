@@ -57,3 +57,23 @@ def test_history_returns_points(client, seeded):
         client.post("/api/v1/telemetry", json=payload(seq=s, ts=iso(NOW - timedelta(minutes=10 - s))), headers=H)
     r = client.get("/api/v1/telemetry", params={"zone_id": "chiller-a", "from": iso(NOW - timedelta(hours=1)), "to": iso(NOW)})
     assert r.json()["zone_id"] == "chiller-a" and 1 <= len(r.json()["points"]) <= 500
+
+
+def test_mqtt_handler_survives_unexpected_error(db, seeded, monkeypatch):
+    import app.services.telemetry as svc
+    real = svc.ingest
+    monkeypatch.setattr(svc, "ingest", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    handle_message(db, "sensors/esp32-chiller-01/telemetry", json.dumps(payload(seq=1)).encode())
+    monkeypatch.setattr(svc, "ingest", real)
+    handle_message(db, "sensors/esp32-chiller-01/telemetry", json.dumps(payload(seq=2)).encode())
+    assert db.query(Telemetry).count() == 1
+
+
+def test_concurrent_duplicate_returns_false(db, seeded, monkeypatch):
+    from app.schemas.telemetry import TelemetryIn
+    from app.services.telemetry import ingest
+    d = TelemetryIn(**payload(seq=5))
+    assert ingest(db, d, None) is True
+    # simulate losing the race: existence check sees nothing, insert hits the PK
+    monkeypatch.setattr(db, "scalar", lambda *a, **k: 0)
+    assert ingest(db, d, None) is False

@@ -39,19 +39,20 @@ def main() -> None:
         except OSError:
             time.sleep(2)
     client.loop_start()
-    start, seq = datetime.now(UTC), 0
+    start, n = datetime.now(UTC), 0
+    seq0 = int(time.time())  # survives restarts against a persisted DB
     while True:
-        t = seq * INTERVAL_S * SPEEDUP
+        t = n * INTERVAL_S * SPEEDUP
         msg = {
             "device_id": DEVICE_ID,
             "zone_id": ZONE_ID,
             "ts": (start + timedelta(seconds=t)).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "temperature_c": round(temperature(SCENARIO, t), 2),
             "humidity_pct": round(86 + random.uniform(-2, 2), 1),
-            "seq": seq,
+            "seq": seq0 + n,
         }
         client.publish(f"sensors/{DEVICE_ID}/telemetry", json.dumps(msg))
-        seq += 1
+        n += 1
         time.sleep(INTERVAL_S)
 
 

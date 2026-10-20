@@ -15,8 +15,11 @@ def _on_connect(client, userdata, flags, reason_code, properties):
 
 
 def _on_message(client, userdata, msg):
-    with SessionLocal() as db:
-        handle_message(db, msg.topic, msg.payload)
+    try:
+        with SessionLocal() as db:
+            handle_message(db, msg.topic, msg.payload)
+    except Exception:  # an exception escaping a paho callback kills loop_forever
+        log.exception("on_message failed")
 
 
 def run() -> None:
@@ -27,6 +30,6 @@ def run() -> None:
         try:
             client.connect(s.mqtt_host, s.mqtt_port)
             client.loop_forever(retry_first_connection=True)
-        except OSError as e:
-            log.warning("mqtt connect failed: %s", e)
+        except Exception:
+            log.exception("mqtt loop failed, retrying")
             time.sleep(3)

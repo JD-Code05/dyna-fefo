@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 
 from pydantic import ValidationError
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.errors import ApiError
@@ -31,7 +32,11 @@ def ingest(db: Session, data: TelemetryIn, device_key: str | None) -> bool:
             Telemetry.device_id == data.device_id, Telemetry.seq == data.seq)):
         return False
     db.add(Telemetry(**data.model_dump()))
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:  # concurrent duplicate hit the PK
+        db.rollback()
+        return False
     return True
 
 
@@ -41,6 +46,9 @@ def handle_message(db: Session, topic: str, payload: bytes) -> None:
     except (ApiError, ValidationError) as e:
         db.rollback()
         log.warning("dropped message on %s: %s", topic, e)
+    except Exception:
+        db.rollback()
+        log.exception("failed handling message on %s", topic)
 
 
 def history(db: Session, zone_id: str, start: datetime, end: datetime) -> HistoryOut:
