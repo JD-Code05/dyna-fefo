@@ -4,19 +4,19 @@
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 
-  /* Enterprise desktop theme: one neutral surface, accents reserved for data and status. */
-  --color-night: #0f1014;
-  --color-surface: #18191e;
-  --color-raised: #1d1e24;
-  --color-line: #262830;
-  --color-track: #22242b;
-  --color-pill: #242630;
-  --color-fg: #f4f5f7;
-  --color-muted: #8e929e;
-  /* Coral marks actions and selection only. Danger is rose-crimson so the two stay >=15deg of hue apart. */
-  --color-accent: #ff7a5c;
+  /* Warm-black dark theme: near-black page, warm charcoal surfaces, hue reserved for action and status. */
+  --color-night: #0a0a0a;
+  --color-surface: #131211;
+  --color-raised: #1a1817;
+  --color-line: #2a2725;
+  --color-track: #211f1d;
+  --color-pill: #262220;
+  --color-fg: #f4f1ec;
+  --color-muted: #948e87;
+  /* Orange marks actions and selection only; it sits 32deg from danger and 29deg from warn (OKLCH hue). */
+  --color-accent: #f2763a;
   /* Neutral data series (remaining life bars, temperature line), so charts never compete with status hues. */
-  --color-series: #b9bdc6;
+  --color-series: #bdb6ae;
   --color-danger: #ff5277;
   --color-warn: #f5a623;
   --color-ok: #10b981;
