@@ -3,19 +3,17 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, ty
 export type TrendPoint = { ts: string; value: number }
 
 // A fixed sample count keeps the path's command count constant, so its `d` can transition between updates.
-const SAMPLES = 32
+const SAMPLES = 96
 const PAD = { left: 36, right: 16, top: 12, bottom: 24 }
 
 const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
 
-/** Fixed-length series: bucket averages when there are more readings than samples, linear interpolation when fewer. */
+/**
+ * Fixed-length series sampled along the real readings (linear interpolation at evenly spaced positions).
+ * Not bucket averages: the first and last samples must equal the first and last readings, or the
+ * "now" dot drawn at the latest reading floats off the end of the line.
+ */
 function resample(values: number[], n: number) {
-  if (values.length > n) {
-    return Array.from({ length: n }, (_, i) => {
-      const bucket = values.slice(Math.floor((i * values.length) / n), Math.floor(((i + 1) * values.length) / n))
-      return bucket.reduce((s, v) => s + v, 0) / bucket.length
-    })
-  }
   return Array.from({ length: n }, (_, i) => {
     const t = (i / (n - 1)) * (values.length - 1)
     const a = Math.floor(t)
@@ -82,7 +80,17 @@ export default function TrendChart({
   const last = points.at(-1)
   const at = (i: number) => ({ x: xAt(i / (points.length - 1)), y: yAt(points[i].value) })
   const end = enough ? at(points.length - 1) : { x: 0, y: 0 }
-  const shown = active == null ? null : { ...at(active), point: points[active] }
+  // Hover dot sits on the drawn line (sampled), while the tooltip shows the exact reading.
+  const lineYAt = (fraction: number) => {
+    const t = fraction * (SAMPLES - 1)
+    const a = Math.floor(t)
+    const b = Math.min(SAMPLES - 1, a + 1)
+    return yAt(ys[a] + (ys[b] - ys[a]) * (t - a))
+  }
+  const shown =
+    active == null || !enough
+      ? null
+      : { x: at(active).x, y: lineYAt(active / (points.length - 1)), point: points[active] }
   const xTicks = enough ? [0, 1, 2, 3].map((q) => Math.round((q / 3) * (points.length - 1))) : []
 
   const pick = (e: PointerEvent<SVGRectElement>) => {
