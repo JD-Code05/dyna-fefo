@@ -62,7 +62,6 @@ export default function TrendChart({
   useEffect(() => {
     const el = box.current
     if (!el) return
-    // Layout size (not the scaled visual size), so the chart stays crisp inside the scaled dashboard frame.
     const ro = new ResizeObserver(([entry]) => setSize({ w: entry.contentRect.width, h: entry.contentRect.height }))
     ro.observe(el)
     return () => ro.disconnect()
@@ -101,7 +100,7 @@ export default function TrendChart({
   return (
     <div ref={box} className="relative h-full w-full">
       {!enough ? (
-        <p className="grid h-full place-items-center text-[11px] text-muted">No readings in the last hour</p>
+        <p className="grid h-full place-items-center text-xs text-muted">No readings in the last hour</p>
       ) : (
         <>
           <svg
@@ -113,12 +112,12 @@ export default function TrendChart({
             onKeyDown={step}
             onFocus={() => setActive(points.length - 1)}
             onBlur={() => setActive(null)}
-            className="block rounded-md outline-none focus-visible:ring-2 focus-visible:ring-sky/60"
+            className="block rounded-md outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
           >
             {ticks.map((t) => (
               <g key={t}>
                 <line x1={PAD.left} x2={PAD.left + plotW} y1={yAt(t)} y2={yAt(t)} stroke="var(--color-line)" strokeWidth="1" />
-                <text x={PAD.left - 8} y={yAt(t)} dy="0.32em" textAnchor="end" className="fill-muted font-mono text-[10px]">
+                <text x={PAD.left - 8} y={yAt(t)} dy="0.32em" textAnchor="end" className="fill-muted font-mono text-xs">
                   {t}
                 </text>
               </g>
@@ -126,7 +125,7 @@ export default function TrendChart({
             {threshold && (
               <g>
                 <line x1={PAD.left} x2={PAD.left + plotW} y1={yAt(threshold.value)} y2={yAt(threshold.value)} stroke="var(--color-danger)" strokeOpacity="0.6" strokeWidth="1" />
-                <text x={PAD.left + plotW} y={yAt(threshold.value) - 5} textAnchor="end" className="fill-muted font-mono text-[9.5px]">
+                <text x={PAD.left + plotW} y={yAt(threshold.value) - 5} textAnchor="end" className="fill-muted font-mono text-xs">
                   {threshold.label}
                 </text>
               </g>
@@ -147,7 +146,7 @@ export default function TrendChart({
                 x={at(i).x}
                 y={base + 16}
                 textAnchor={k === 0 ? 'start' : k === xTicks.length - 1 ? 'end' : 'middle'}
-                className="fill-muted font-mono text-[10px]"
+                className="fill-muted font-mono text-xs"
               >
                 {fmtTime(points[i].ts)}
               </text>
@@ -179,11 +178,11 @@ export default function TrendChart({
                 top: Math.max(0, shown.y - 46),
               }}
             >
-              <p className="font-mono text-[12px] font-bold tabular-nums text-fg">
+              <p className="font-mono text-xs font-bold tabular-nums text-fg">
                 {shown.point.value.toFixed(1)}
-                <span className="ml-0.5 text-[10px] font-medium text-muted">{unit}</span>
+                <span className="ml-0.5 text-xs font-medium text-muted">{unit}</span>
               </p>
-              <p className="font-mono text-[10px] text-muted">{fmtTime(shown.point.ts)}</p>
+              <p className="font-mono text-xs text-muted">{fmtTime(shown.point.ts)}</p>
             </div>
           )}
         </>

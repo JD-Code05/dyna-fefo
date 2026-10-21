@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { ArrowUpRight, Check, ChevronDown } from 'lucide-react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { Check, ChevronDown } from 'lucide-react'
 
 /** Shared bento surface: one neutral container for every desktop card. */
 export const card = 'rounded-[14px] border border-line bg-surface'
@@ -10,9 +10,11 @@ type DropdownProps = {
   onChange: (value: string) => void
   className?: string
   label: string
+  /** Which trigger edge the menu lines up with; use 'left' when the trigger sits at a card's left edge. */
+  align?: 'left' | 'right'
 }
 
-export function Dropdown({ value, options, onChange, className = '', label }: DropdownProps) {
+export function Dropdown({ value, options, onChange, className = '', label, align = 'right' }: DropdownProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -38,7 +40,7 @@ export function Dropdown({ value, options, onChange, className = '', label }: Dr
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className={`flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-white/[0.02] pl-3 pr-2 text-[12.5px] font-medium text-fg/90 transition-colors hover:border-white/15 hover:bg-white/[0.04] ${
+        className={`flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-white/[0.02] pl-3 pr-2 text-sm font-medium text-fg/90 transition-colors hover:border-white/15 hover:bg-white/[0.04] ${
           open ? 'border-white/15 bg-white/[0.04]' : ''
         } ${className}`}
       >
@@ -51,7 +53,7 @@ export function Dropdown({ value, options, onChange, className = '', label }: Dr
       {open && (
         <ul
           role="listbox"
-          className="rise-in absolute right-0 top-full z-40 mt-1.5 min-w-full rounded-xl border border-line bg-raised p-1 text-fg shadow-[0_18px_40px_-12px_rgb(0_0_0/0.7)]"
+          className={`rise-in absolute ${align === 'left' ? 'left-0' : 'right-0'} top-full z-40 mt-1.5 min-w-full rounded-xl border border-line bg-raised p-1 text-fg shadow-[0_18px_40px_-12px_rgb(0_0_0/0.7)]`}
         >
           {options.map((option) => (
             <li key={option}>
@@ -63,10 +65,10 @@ export function Dropdown({ value, options, onChange, className = '', label }: Dr
                   onChange(option)
                   setOpen(false)
                 }}
-                className="flex w-full items-center justify-between gap-4 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-left text-[12.5px] font-medium text-fg/85 hover:bg-white/[0.05] hover:text-fg"
+                className="flex w-full items-center justify-between gap-4 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-left text-sm font-medium text-fg/85 hover:bg-white/[0.05] hover:text-fg"
               >
                 {option}
-                {option === value && <Check className="size-3.5 text-sky" strokeWidth={2.6} />}
+                {option === value && <Check className="size-3.5 text-accent" strokeWidth={2.6} />}
               </button>
             </li>
           ))}
@@ -76,37 +78,89 @@ export function Dropdown({ value, options, onChange, className = '', label }: Dr
   )
 }
 
-export function ArrowButton({
+type Segment<K extends string> = { key: K; label: string; count?: number }
+
+/**
+ * Filter buttons whose active highlight slides to the clicked one. An identical, active-styled copy
+ * sits on top and is clipped to the active button, so background and text color change in one motion.
+ */
+export function Segmented<K extends string>({
+  options,
+  value,
+  onChange,
   label,
-  className = '',
-  onClick,
 }: {
+  options: Segment<K>[]
+  value: K
+  onChange: (key: K) => void
   label: string
-  className?: string
-  onClick?: () => void
 }) {
+  const box = useRef<HTMLDivElement>(null)
+  const [clip, setClip] = useState<string | null>(null) // null until measured, so it mounts in place
+  useLayoutEffect(() => {
+    const el = box.current
+    if (!el) return
+    const measure = () => {
+      const btn = el.querySelector<HTMLElement>(`[data-key="${value}"]`)
+      if (!btn) return
+      const right = el.clientWidth - btn.offsetLeft - btn.offsetWidth
+      const bottom = el.clientHeight - btn.offsetTop - btn.offsetHeight
+      setClip(`inset(${btn.offsetTop}px ${right}px ${bottom}px ${btn.offsetLeft}px round 6px)`)
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [value])
+
+  const content = (o: Segment<K>, active: boolean) => (
+    <>
+      {o.label}
+      {o.count != null && (
+        <span className={`rounded px-1.5 py-0.5 font-mono text-xs ${active ? 'bg-accent/15 text-accent' : 'bg-white/[0.04]'}`}>
+          {o.count}
+        </span>
+      )}
+    </>
+  )
+  const item = 'flex h-8 items-center gap-2 rounded-md px-3 text-xs font-semibold'
+
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className={`grid size-8 shrink-0 place-items-center rounded-full border border-line text-muted transition-colors hover:border-white/15 hover:bg-white/[0.04] hover:text-fg ${className}`}
-    >
-      <ArrowUpRight className="size-4" strokeWidth={2} />
-    </button>
+    <div ref={box} role="group" aria-label={label} className="relative flex flex-wrap rounded-lg border border-line bg-night p-1">
+      {options.map((o) => (
+        <button
+          key={o.key}
+          data-key={o.key}
+          type="button"
+          aria-pressed={o.key === value}
+          onClick={() => onChange(o.key)}
+          className={`${item} text-muted hover:text-fg`}
+        >
+          {content(o, false)}
+        </button>
+      ))}
+      {clip && (
+        <div aria-hidden className="segment-active pointer-events-none absolute inset-0 flex flex-wrap p-1" style={{ clipPath: clip }}>
+          {options.map((o) => (
+            <span key={o.key} className={`${item} bg-pill text-fg`}>
+              {content(o, true)}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
 export function CardTitle({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <h2 className={`font-bold uppercase leading-none tracking-[0.01em] text-fg ${className}`}>{children}</h2>
+    <h2 className={`font-semibold leading-tight text-fg ${className}`}>{children}</h2>
   )
 }
 
 /** Muted secondary line under a card title. */
 export function CardHint({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <p className={`mt-1.5 text-[12px] leading-snug text-muted ${className}`}>{children}</p>
+  return <p className={`mt-1.5 text-xs leading-snug text-muted ${className}`}>{children}</p>
 }
 
 export function Checkbox({
@@ -132,7 +186,7 @@ export function Checkbox({
       disabled={disabled}
       onClick={onChange}
       className={`grid size-[16px] shrink-0 place-items-center rounded-[5px] transition-colors disabled:opacity-30 ${
-        on ? 'bg-sky text-night' : 'border border-white/20 hover:border-white/40'
+        on ? 'bg-accent text-night' : 'border border-white/20 hover:border-white/40'
       }`}
     >
       {indeterminate ? (
@@ -161,13 +215,13 @@ export function ConfirmDelete({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   return (
-    <div className="absolute inset-0 z-50 grid place-items-center bg-night/75 backdrop-blur-sm">
-      <div role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" className="w-[400px] rounded-[18px] border border-line bg-surface p-6">
-        <p id="confirm-title" className="text-[15px] font-bold text-fg">{title}</p>
-        <p className="mt-2 text-[11px] leading-relaxed text-muted">{body}</p>
-        {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-2.5 py-2 text-[11px] font-semibold text-danger">{error}</p>}
+    <div className="fixed inset-0 z-50 grid place-items-center p-4 bg-night/75 backdrop-blur-sm">
+      <div role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" className="w-[400px] max-w-full rounded-[18px] border border-line bg-surface p-6">
+        <p id="confirm-title" className="text-base font-bold text-fg">{title}</p>
+        <p className="mt-2 text-xs leading-relaxed text-muted">{body}</p>
+        {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-2.5 py-2 text-xs font-semibold text-danger">{error}</p>}
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" autoFocus onClick={onCancel} className="h-10 rounded-lg border border-line px-4 text-[11px] font-semibold text-fg">
+          <button type="button" autoFocus onClick={onCancel} className="h-10 rounded-lg border border-line px-4 text-xs font-semibold text-fg">
             Cancel
           </button>
           <button
@@ -182,7 +236,7 @@ export function ConfirmDelete({
                 setBusy(false)
               }
             }}
-            className="h-10 rounded-lg bg-danger px-4 text-[11px] font-bold text-night disabled:opacity-50"
+            className="h-10 rounded-lg bg-danger px-4 text-xs font-bold text-night disabled:opacity-50"
           >
             {confirmLabel}
           </button>
