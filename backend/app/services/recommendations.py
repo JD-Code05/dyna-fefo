@@ -51,6 +51,14 @@ def refresh_for_batch(db: Session, batch: Batch, state: BatchState, cfg: Product
         "predicted_expiry": state.predicted_expiry.isoformat() if state.predicted_expiry else None,
         "printed_expiry": batch.printed_expiry.isoformat(),
     }
+    # One open recommendation per batch: when conditions change (dispatch -> salvage), update it in place.
+    pending = db.scalar(select(Recommendation).where(
+        Recommendation.batch_id == batch.id, Recommendation.status == RecStatus.pending.value)
+        .order_by(Recommendation.id.desc()).limit(1))
+    if pending is not None:
+        pending.type, pending.rationale = RecType(kind).value, rationale
+        db.flush()
+        return pending
     rec = db.scalar(select(Recommendation).where(
         Recommendation.batch_id == batch.id, Recommendation.type == kind)
         .order_by(Recommendation.id.desc()).limit(1))

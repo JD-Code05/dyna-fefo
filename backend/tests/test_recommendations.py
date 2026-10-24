@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pytest
 from conftest import AGED_NOW
 
@@ -9,6 +11,13 @@ def test_refresh_does_not_duplicate(db, products, aged_batch_with_rec):
     _, batch_id = aged_batch_with_rec
     recompute_all(db, products, AGED_NOW)  # second run, same state
     assert db.query(Recommendation).filter_by(batch_id=batch_id, status="pending").count() == 1
+
+
+def test_dispatch_upgrades_to_salvage_in_place(db, products, aged_batch_with_rec):
+    rec_id, batch_id = aged_batch_with_rec  # pending PRIORITY_DISPATCH at ratio 0.125
+    recompute_all(db, products, AGED_NOW + timedelta(hours=10))  # 10 h later: ratio ~0.08
+    pending = db.query(Recommendation).filter_by(batch_id=batch_id, status="pending").all()
+    assert [(r.id, r.type) for r in pending] == [(rec_id, "SALVAGE")]
 
 
 def test_rationale_and_type(client, aged_batch_with_rec):
