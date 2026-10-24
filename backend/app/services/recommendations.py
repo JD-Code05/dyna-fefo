@@ -10,6 +10,7 @@ from app.db.models import (
     AuditEntity,
     Batch,
     BatchState,
+    BatchStatus,
     Recommendation,
     RecStatus,
     RecType,
@@ -76,5 +77,12 @@ def decide_recommendation(db: Session, user: User, rec_id: int, body: DecisionIn
     rec.decided_by, rec.decided_at, rec.decision_note = user.id, datetime.now(UTC), body.note
     record(db, user, AuditAction(body.decision), AuditEntity.recommendation, rec.id, before,
            snapshot(rec, AUDIT_FIELDS))
+    batch = db.get(Batch, rec.batch_id)
+    # Approving a dispatch is the supervisor's dispatch order; never overwrite a dispatched/salvaged batch.
+    if body.decision == "approve" and rec.type == RecType.PRIORITY_DISPATCH.value and batch is not None \
+            and batch.status == BatchStatus.active.value:
+        batch.status = BatchStatus.dispatched.value
+        record(db, user, AuditAction.update, AuditEntity.batch, batch.id,
+               {"status": BatchStatus.active.value}, {"status": batch.status})
     db.commit()
     return to_out(*db.execute(rec_query().where(Recommendation.id == rec_id)).one())

@@ -83,8 +83,10 @@ const timeAgo = (iso: string) => {
   return s < 60 ? `${s}s ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : `${Math.round(s / 3600)} h ago`
 }
 
-function recText(r: Recommendation | null, approved: Recommendation | null): string {
-  if (!r && approved) return approved.type === 'SALVAGE' ? 'Salvage approved · mark batch as salvaged' : 'Dispatch approved · mark batch as dispatched'
+function recText(r: Recommendation | null, approved: Recommendation | null, status: Batch['status']): string {
+  if (!r && approved?.type === 'SALVAGE') return status === 'salvaged' ? 'Salvaged · approved by supervisor' : 'Salvage approved · mark batch as salvaged'
+  // Dispatch approvals made before the backend set the status on approval stay active.
+  if (!r && approved) return status === 'dispatched' ? 'Dispatched · approved by supervisor' : 'Dispatch approved · mark batch as dispatched'
   if (!r) return 'No action needed · within shelf life'
   const pct = Math.round(Number(r.rationale.rul_ratio ?? 0) * 100)
   return r.type === 'SALVAGE'
@@ -120,7 +122,7 @@ function toStock(b: Batch, series: number[], rec: Recommendation | null, approve
     dynamicHours: b.rul_h == null ? Math.max(0, hoursUntil(b.printed_expiry, now)) : Math.round(b.rul_h),
     printedExpiry: b.printed_expiry,
     predictedExpiry: b.predicted_expiry,
-    rec: recText(rec, approved),
+    rec: recText(rec, approved, b.status),
     action: rec?.type === 'SALVAGE' ? 'audit' : rec ? 'dispatch' : 'review',
     recommendation: rec,
     category: b.product_name,
