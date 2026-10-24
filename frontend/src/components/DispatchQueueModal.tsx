@@ -469,7 +469,7 @@ function Row({
         <Sparkline batch={b} />
         <div className="font-mono text-xs leading-[1.45]">
           <p className="text-muted">
-            Avg <span className="font-semibold text-fg/90">{b.avgTemp.toFixed(1)}°C</span>
+            Avg <span className="font-semibold text-fg/90">{b.series.length ? `${b.avgTemp.toFixed(1)}°C` : '—'}</span>
           </p>
           <p className="text-muted">
             Peak{' '}
@@ -478,7 +478,7 @@ function Row({
                 b.breach === 'critical' ? 'text-danger' : b.breach === 'spike' ? 'text-warn' : 'text-fg/90'
               }`}
             >
-              {b.peakTemp.toFixed(1)}°C
+              {b.series.length ? `${b.peakTemp.toFixed(1)}°C` : '—'}
             </span>
           </p>
         </div>
