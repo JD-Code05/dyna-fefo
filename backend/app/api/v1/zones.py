@@ -16,7 +16,11 @@ def list_zones(p: PageParams = Depends(), db: Session = Depends(get_db)):
     total = db.scalar(select(func.count()).select_from(Zone))
     items = []
     for z in zones:
-        t = db.scalars(select(Telemetry).where(Telemetry.zone_id == z.id).order_by(Telemetry.ts.desc()).limit(1)).first()
-        latest = t and Latest(ts=t.ts, temperature_c=t.temperature_c, humidity_pct=t.humidity_pct, danger=t.temperature_c > 4.0)
+        t = db.scalars(
+            select(Telemetry).where(Telemetry.zone_id == z.id).order_by(Telemetry.ts.desc()).limit(1)
+        ).first()
+        latest = t and Latest(
+            ts=t.ts, temperature_c=t.temperature_c, humidity_pct=t.humidity_pct, danger=t.temperature_c > 4.0
+        )
         items.append(ZoneOut(id=z.id, name=z.name, latest=latest))
     return Page(items=items, total=total, limit=p.limit, offset=p.offset)

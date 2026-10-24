@@ -19,10 +19,11 @@ def params_for(cfg: ProductConfig) -> RulParams:
 
 def recompute_batch(db: Session, batch: Batch, cfg: ProductConfig, now: datetime) -> BatchState:
     """Upsert the batch's state and append a history row. Flushes; the caller commits."""
-    rows = db.execute(select(Telemetry.ts, Telemetry.temperature_c, Telemetry.humidity_pct)
-                      .where(Telemetry.zone_id == batch.zone_id, Telemetry.ts >= batch.received_at,
-                              Telemetry.ts <= now)
-                      .order_by(Telemetry.ts)).all()
+    rows = db.execute(
+        select(Telemetry.ts, Telemetry.temperature_c, Telemetry.humidity_pct)
+        .where(Telemetry.zone_id == batch.zone_id, Telemetry.ts >= batch.received_at, Telemetry.ts <= now)
+        .order_by(Telemetry.ts)
+    ).all()
     res = compute_rul([Reading(*r) for r in rows], batch.received_at, now, params_for(cfg))
     wall = datetime.now(UTC)  # write time, not the (possibly simulated) `now`
     state = db.get(BatchState, batch.id) or BatchState(batch_id=batch.id)
@@ -30,16 +31,24 @@ def recompute_batch(db: Session, batch: Batch, cfg: ProductConfig, now: datetime
     state.last_telemetry_ts, state.predicted_expiry, state.computed_at = res.last_ts, res.predicted_expiry, wall
     db.add(state)
     # shortcut: a history row per batch per run, no retention; prune or downsample if the worker runs for days
-    db.add(BatchStateHistory(batch_id=batch.id, computed_at=wall, rul_h=res.rul_h,
-                             rul_ratio=res.rul_ratio, effective_age_h=res.effective_age_h))
+    db.add(
+        BatchStateHistory(
+            batch_id=batch.id,
+            computed_at=wall,
+            rul_h=res.rul_h,
+            rul_ratio=res.rul_ratio,
+            effective_age_h=res.effective_age_h,
+        )
+    )
     db.flush()
     return state
 
 
 def recompute_all(db: Session, products: dict[str, ProductConfig], now: datetime | None = None) -> list[BatchState]:
     sim = get_settings().sim_mode
-    batches = db.scalars(select(Batch).where(Batch.deleted_at.is_(None), Batch.status == BatchStatus.active.value)
-                         .order_by(Batch.id)).all()
+    batches = db.scalars(
+        select(Batch).where(Batch.deleted_at.is_(None), Batch.status == BatchStatus.active.value).order_by(Batch.id)
+    ).all()
     states = []
     for b in batches:
         t = now

@@ -40,8 +40,14 @@ def test_readd_deleted_device_revives_with_new_key(client, seeded):
     assert "esp32-chiller-02" in [d["id"] for d in client.get("/api/v1/devices").json()["items"]]
     log = client.get("/api/v1/audit-log?entity=device&action=create").json()["items"][0]
     assert log["before"]["deleted_at"] is not None and log["after"]["deleted_at"] is None
-    reading = {"device_id": "esp32-chiller-02", "zone_id": "chiller-a", "ts": "2026-10-19T13:45:00Z",
-               "temperature_c": 4.0, "humidity_pct": 85.0, "seq": 1}
+    reading = {
+        "device_id": "esp32-chiller-02",
+        "zone_id": "chiller-a",
+        "ts": "2026-10-19T13:45:00Z",
+        "temperature_c": 4.0,
+        "humidity_pct": 85.0,
+        "seq": 1,
+    }
     assert client.post("/api/v1/telemetry", json=reading, headers={"X-Device-Key": "dev-key-02"}).status_code == 401
 
 

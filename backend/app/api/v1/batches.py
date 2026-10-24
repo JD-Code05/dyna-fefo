@@ -14,8 +14,12 @@ supervisor = require_role(Role.supervisor)
 
 
 @router.get("/batches", response_model=Page[BatchOut])
-def list_batches(include_deleted: bool = False, status: BatchStatus | None = None,
-                 p: PageParams = Depends(), db: Session = Depends(get_db)):
+def list_batches(
+    include_deleted: bool = False,
+    status: BatchStatus | None = None,
+    p: PageParams = Depends(),
+    db: Session = Depends(get_db),
+):
     q = svc.batch_query()
     if not include_deleted:
         q = q.where(Batch.deleted_at.is_(None))
@@ -40,12 +44,19 @@ def get_batch_rul(batch_id: int, include_deleted: bool = False, db: Session = De
     if batch is None or (batch.deleted_at is not None and not include_deleted):
         raise ApiError(404, "batch_not_found", "Batch not found")
     s = db.get(BatchState, batch_id)
-    hist = db.scalars(select(BatchStateHistory).where(BatchStateHistory.batch_id == batch_id)
-                      .order_by(BatchStateHistory.computed_at)).all()
+    hist = db.scalars(
+        select(BatchStateHistory).where(BatchStateHistory.batch_id == batch_id).order_by(BatchStateHistory.computed_at)
+    ).all()
     return {
         "batch_id": batch_id,
-        "current": {"rul_h": s.rul_h, "rul_ratio": s.rul_ratio, "effective_age_h": s.effective_age_h,
-                    "predicted_expiry": s.predicted_expiry} if s else None,
+        "current": {
+            "rul_h": s.rul_h,
+            "rul_ratio": s.rul_ratio,
+            "effective_age_h": s.effective_age_h,
+            "predicted_expiry": s.predicted_expiry,
+        }
+        if s
+        else None,
         "history": [{"computed_at": h.computed_at, "rul_h": h.rul_h, "rul_ratio": h.rul_ratio} for h in hist],
     }
 

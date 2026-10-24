@@ -1,4 +1,11 @@
-NEW = {"code": "CHK-100", "product_id": "chicken-breast", "zone_id": "chiller-a", "received_at": "2026-10-20T00:00:00Z", "printed_expiry": "2026-10-30T00:00:00Z", "quantity": 12}
+NEW = {
+    "code": "CHK-100",
+    "product_id": "chicken-breast",
+    "zone_id": "chiller-a",
+    "received_at": "2026-10-20T00:00:00Z",
+    "printed_expiry": "2026-10-30T00:00:00Z",
+    "quantity": 12,
+}
 
 
 def test_create_and_get(client, seeded):
@@ -82,6 +89,7 @@ def test_naive_datetimes_rejected_422(client, seeded):
 
 def test_same_instant_other_timezone_is_noop(client, seeded):
     from datetime import datetime, timedelta, timezone
+
     cur = client.get("/api/v1/batches/1").json()["received_at"]
     other = datetime.fromisoformat(cur).astimezone(timezone(timedelta(hours=2))).isoformat()
     client.patch("/api/v1/batches/1", json={"received_at": other})

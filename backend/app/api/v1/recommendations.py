@@ -18,8 +18,9 @@ def list_recommendations(status: RecStatus | None = None, p: PageParams = Depend
     if status is not None:
         q = q.where(Recommendation.status == status.value)
     total = db.scalar(select(func.count()).select_from(q.subquery()))
-    rows = db.execute(q.order_by(Recommendation.created_at.desc(), Recommendation.id.desc())
-                      .limit(p.limit).offset(p.offset)).all()
+    rows = db.execute(
+        q.order_by(Recommendation.created_at.desc(), Recommendation.id.desc()).limit(p.limit).offset(p.offset)
+    ).all()
     return Page(items=[svc.to_out(*r) for r in rows], total=total, limit=p.limit, offset=p.offset)
 
 

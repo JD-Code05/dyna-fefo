@@ -14,7 +14,9 @@ def test_unknown_route_uses_error_shape(client):
 
 
 def test_cors_allows_frontend(client):
-    r = client.options("/api/v1/health", headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "GET"})
+    r = client.options(
+        "/api/v1/health", headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "GET"}
+    )
     assert r.headers["access-control-allow-origin"] == "http://localhost:3000"
 
 
@@ -84,6 +86,7 @@ def test_require_role_forbids_staff():
 
 def test_no_duplicate_routes():
     from app.main import create_app
+
     # this FastAPI wraps each include_router() in an _IncludedRouter; the same router twice duplicates its routes
     routers = [id(r.original_router) for r in create_app().routes if hasattr(r, "original_router")]
     assert routers and len(routers) == len(set(routers))

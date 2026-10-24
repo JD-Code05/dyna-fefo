@@ -25,17 +25,23 @@ AUDIT_FIELDS = ("id", "batch_id", "type", "status", "decision_note")
 
 def rec_query():
     """Recommendation + batch code + decider name, live batches only."""
-    return (select(Recommendation, Batch.code, User.username)
-            .join(Batch, Batch.id == Recommendation.batch_id)
-            .outerjoin(User, User.id == Recommendation.decided_by)
-            .where(Batch.deleted_at.is_(None)))
+    return (
+        select(Recommendation, Batch.code, User.username)
+        .join(Batch, Batch.id == Recommendation.batch_id)
+        .outerjoin(User, User.id == Recommendation.decided_by)
+        .where(Batch.deleted_at.is_(None))
+    )
 
 
 def to_out(rec: Recommendation, batch_code: str, decider: str | None) -> RecommendationOut:
     return RecommendationOut(
-        **{f: getattr(rec, f) for f in ("id", "batch_id", "type", "status", "rationale", "created_at",
-                                        "decided_at", "decision_note")},
-        batch_code=batch_code, decided_by=decider)
+        **{
+            f: getattr(rec, f)
+            for f in ("id", "batch_id", "type", "status", "rationale", "created_at", "decided_at", "decision_note")
+        },
+        batch_code=batch_code,
+        decided_by=decider,
+    )
 
 
 def refresh_for_batch(db: Session, batch: Batch, state: BatchState, cfg: ProductConfig) -> Recommendation | None:
@@ -46,22 +52,29 @@ def refresh_for_batch(db: Session, batch: Batch, state: BatchState, cfg: Product
         return None  # existing pending recommendations are left for the supervisor
     value = th.salvage_ratio if kind == "SALVAGE" else th.dispatch_ratio
     rationale = {
-        "rul_h": state.rul_h, "rul_ratio": state.rul_ratio,
+        "rul_h": state.rul_h,
+        "rul_ratio": state.rul_ratio,
         "threshold": {"name": f"{kind.lower()}_ratio", "value": value},
         "predicted_expiry": state.predicted_expiry.isoformat() if state.predicted_expiry else None,
         "printed_expiry": batch.printed_expiry.isoformat(),
     }
     # One open recommendation per batch: when conditions change (dispatch -> salvage), update it in place.
-    pending = db.scalar(select(Recommendation).where(
-        Recommendation.batch_id == batch.id, Recommendation.status == RecStatus.pending.value)
-        .order_by(Recommendation.id.desc()).limit(1))
+    pending = db.scalar(
+        select(Recommendation)
+        .where(Recommendation.batch_id == batch.id, Recommendation.status == RecStatus.pending.value)
+        .order_by(Recommendation.id.desc())
+        .limit(1)
+    )
     if pending is not None:
         pending.type, pending.rationale = RecType(kind).value, rationale
         db.flush()
         return pending
-    rec = db.scalar(select(Recommendation).where(
-        Recommendation.batch_id == batch.id, Recommendation.type == kind)
-        .order_by(Recommendation.id.desc()).limit(1))
+    rec = db.scalar(
+        select(Recommendation)
+        .where(Recommendation.batch_id == batch.id, Recommendation.type == kind)
+        .order_by(Recommendation.id.desc())
+        .limit(1)
+    )
     if rec is not None and rec.status != RecStatus.pending.value:
         return rec  # already decided: do not re-raise
     if rec is None:
@@ -83,14 +96,26 @@ def decide_recommendation(db: Session, user: User, rec_id: int, body: DecisionIn
     before = snapshot(rec, AUDIT_FIELDS)
     rec.status = RecStatus.approved.value if body.decision == "approve" else RecStatus.rejected.value
     rec.decided_by, rec.decided_at, rec.decision_note = user.id, datetime.now(UTC), body.note
-    record(db, user, AuditAction(body.decision), AuditEntity.recommendation, rec.id, before,
-           snapshot(rec, AUDIT_FIELDS))
+    record(
+        db, user, AuditAction(body.decision), AuditEntity.recommendation, rec.id, before, snapshot(rec, AUDIT_FIELDS)
+    )
     batch = db.get(Batch, rec.batch_id)
     # Approving a dispatch is the supervisor's dispatch order; never overwrite a dispatched/salvaged batch.
-    if body.decision == "approve" and rec.type == RecType.PRIORITY_DISPATCH.value and batch is not None \
-            and batch.status == BatchStatus.active.value:
+    if (
+        body.decision == "approve"
+        and rec.type == RecType.PRIORITY_DISPATCH.value
+        and batch is not None
+        and batch.status == BatchStatus.active.value
+    ):
         batch.status = BatchStatus.dispatched.value
-        record(db, user, AuditAction.update, AuditEntity.batch, batch.id,
-               {"status": BatchStatus.active.value}, {"status": batch.status})
+        record(
+            db,
+            user,
+            AuditAction.update,
+            AuditEntity.batch,
+            batch.id,
+            {"status": BatchStatus.active.value},
+            {"status": batch.status},
+        )
     db.commit()
     return to_out(*db.execute(rec_query().where(Recommendation.id == rec_id)).one())

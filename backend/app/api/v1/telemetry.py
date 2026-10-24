@@ -27,6 +27,10 @@ def get_history(
 ):
     if to is None:
         # sim timestamps can run ahead of the wall clock (SIM_SPEEDUP)
-        latest = db.scalar(select(func.max(Telemetry.ts)).where(Telemetry.zone_id == zone_id))             if get_settings().sim_mode else None
+        latest = (
+            db.scalar(select(func.max(Telemetry.ts)).where(Telemetry.zone_id == zone_id))
+            if get_settings().sim_mode
+            else None
+        )
         to = latest or datetime.now(UTC)
     return svc.history(db, zone_id, from_ or to - timedelta(hours=24), to)
