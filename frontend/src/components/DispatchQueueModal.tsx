@@ -10,7 +10,7 @@ type Filter = 'all' | 'breached' | 'salvage' | 'history'
 type AuditRow = Schemas['AuditOut']
 type Status = 'confirmed' | 'reviewed' | 'audit'
 
-const COLS = 'grid-cols-[18px_190px_170px_190px_minmax(0,1fr)_210px]'
+const COLS = 'grid-cols-[18px_minmax(120px,190px)_minmax(150px,170px)_minmax(130px,190px)_minmax(120px,1fr)_210px]'
 const LIMIT = 5 // °C chill-chain ceiling
 
 const actionMeta: Record<
@@ -154,7 +154,7 @@ export default function DispatchQueueModal({ onClose }: { onClose: () => void })
 
   return (
     <div
-      className={`fixed inset-0 z-50 grid place-items-center p-4 bg-night/75 backdrop-blur-[4px] ${closing ? 'backdrop-out' : 'backdrop-in'}`}
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-night/75 backdrop-blur-[4px] ${closing ? 'backdrop-out' : 'backdrop-in'}`}
       onMouseDown={(e) => e.target === e.currentTarget && close()}
     >
       <div
