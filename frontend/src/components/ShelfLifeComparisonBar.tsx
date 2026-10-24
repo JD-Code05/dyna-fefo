@@ -20,7 +20,7 @@ export default function ShelfLifeComparisonBar({
       className={`relative block overflow-hidden rounded bg-track/70 ring-1 ring-inset ring-white/[0.04] ${className}`}
     >
       <span
-        className="absolute inset-y-0 left-0 rounded-l bg-sky transition-[width] duration-500"
+        className="absolute inset-y-0 left-0 rounded-l bg-series transition-[width] duration-500"
         style={{ width: `${remainingWidth}%` }}
       />
       <span

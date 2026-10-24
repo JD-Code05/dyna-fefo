@@ -11,8 +11,13 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 @router.get("/audit-log", response_model=Page[AuditOut])
-def list_audit(entity: str | None = None, action: str | None = None, entity_id: str | None = None,
-               p: PageParams = Depends(), db: Session = Depends(get_db)):
+def list_audit(
+    entity: str | None = None,
+    action: str | None = None,
+    entity_id: str | None = None,
+    p: PageParams = Depends(),
+    db: Session = Depends(get_db),
+):
     q = select(AuditLog, User.username).join(User, User.id == AuditLog.user_id)
     for col, val in ((AuditLog.entity, entity), (AuditLog.action, action), (AuditLog.entity_id, entity_id)):
         if val is not None:

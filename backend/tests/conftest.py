@@ -36,8 +36,12 @@ def _migrated():
 def _clean(_migrated):
     yield
     with _engine.begin() as c:
-        tables = [r[0] for r in c.execute(text(
-            "SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename <> 'alembic_version'"))]
+        tables = [
+            r[0]
+            for r in c.execute(
+                text("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename <> 'alembic_version'")
+            )
+        ]
         if tables:
             c.execute(text("TRUNCATE " + ",".join(f'"{t}"' for t in tables) + " RESTART IDENTITY CASCADE"))
 
@@ -75,12 +79,21 @@ def aged_batch_with_rec(db, seeded, products):
 
     from app.db.models import Batch, Recommendation, Telemetry
     from app.services.rul_jobs import recompute_all
+
     b = db.query(Batch).filter_by(code="CHK-004").one()
     b.zone_id, b.received_at = "chiller-a", AGED_NOW - timedelta(hours=210)
     b.printed_expiry = b.received_at + timedelta(days=10)
     for i in range(211):
-        db.add(Telemetry(device_id="esp32-chiller-01", zone_id="chiller-a", seq=i, humidity_pct=85,
-                         ts=b.received_at + timedelta(hours=i), temperature_c=4))
+        db.add(
+            Telemetry(
+                device_id="esp32-chiller-01",
+                zone_id="chiller-a",
+                seq=i,
+                humidity_pct=85,
+                ts=b.received_at + timedelta(hours=i),
+                temperature_c=4,
+            )
+        )
     db.commit()
     recompute_all(db, products, AGED_NOW)
     rec = db.query(Recommendation).filter_by(batch_id=b.id, status="pending").one()

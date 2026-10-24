@@ -21,6 +21,9 @@ dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.6"]
 testpaths = ["tests"]
 pythonpath = ["tests"]
 
+[tool.ruff]
+line-length = 120  # the codebase's existing style
+
 [tool.ruff.lint]
 # B008: FastAPI Depends() idiom; EXE002: bind-mount file modes on Windows; UP046: keep pydantic Generic[T] style
 ignore = ["B008", "EXE002", "UP046"]

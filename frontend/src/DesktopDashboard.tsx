@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import Sidebar from './components/Sidebar'
 import ShelfLifeCard from './components/ShelfLifeCard'
 import TelemetryMapCard from './components/TelemetryMapCard'
@@ -16,27 +16,11 @@ import {
 } from './components/WorkspaceViews'
 import { InventoryProvider } from './data/InventoryContext'
 
-const FRAME_W = 1440
-const FRAME_H = 900
-
-/** Uniform scale so the 1440×900 composition always fits the viewport intact. */
-function useFitScale() {
-  const compute = () => Math.min(window.innerWidth / FRAME_W, window.innerHeight / FRAME_H)
-  const [scale, setScale] = useState(compute)
-  useEffect(() => {
-    const onResize = () => setScale(compute())
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
-  return scale
-}
-
 export default function DesktopDashboard({
   onLogout,
 }: {
   onLogout: () => void
 }) {
-  const scale = useFitScale()
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = window.localStorage.getItem('freshops-theme')
     if (saved === 'dark' || saved === 'light') return saved
@@ -61,14 +45,11 @@ export default function DesktopDashboard({
 
   return (
     <InventoryProvider>
-      <div className={`relative h-screen w-screen overflow-hidden bg-night ${theme === 'light' ? 'theme-light' : ''}`}>
+      {/* Fills the window at real size so browser zoom works; below xl the page stacks and scrolls. */}
       <div
-        className="dashboard-scrollbars absolute left-1/2 top-1/2 flex flex-col overflow-hidden border border-line bg-night font-sans text-fg shadow-[0_32px_90px_rgb(0_0_0/0.45)]"
-        style={{
-          width: FRAME_W,
-          height: FRAME_H,
-          transform: `translate(-50%, -50%) scale(${scale})`,
-        }}
+        className={`dashboard-scrollbars flex min-h-dvh flex-col bg-night font-sans text-fg xl:h-dvh xl:overflow-hidden ${
+          theme === 'light' ? 'theme-light' : ''
+        }`}
       >
         <h1 className="sr-only">Dynamic Perishable Inventory Management System</h1>
         <DesktopHeader
@@ -79,29 +60,31 @@ export default function DesktopDashboard({
           onOpenSettings={() => setSettingsOpen(true)}
           onLogout={onLogout}
         />
-        <div className="grid min-h-0 flex-1 grid-cols-[250px_minmax(0,1fr)_340px] gap-3 p-3">
-          <Sidebar />
+        <div className="grid flex-1 grid-cols-1 gap-3 p-3 xl:min-h-0 xl:grid-cols-[250px_minmax(0,1fr)_340px]">
+          <Sidebar onSelectTab={setActiveTab} onOpenQueue={openQueue} />
 
           {activeTab === 'overview' ? (
             <>
-              <main className="flex min-h-0 min-w-0 flex-col gap-3">
-                <div className="min-h-0 flex-1">
-                  <ShelfLifeCard />
+              {/* Hero: what needs a decision now. The shelf-life chart below is the evidence for it. */}
+              <main className="view-in flex min-w-0 flex-col gap-3 xl:min-h-0">
+                <div className="flex h-[420px] shrink-0 xl:h-[46%]">
+                  <QueueCard />
                 </div>
-                <div className="h-[260px] shrink-0">
-                  <TelemetryMapCard />
+                <div className="h-[560px] xl:h-auto xl:min-h-0 xl:flex-1">
+                  <ShelfLifeCard />
                 </div>
               </main>
 
-              <aside className="grid min-h-0 min-w-0 grid-rows-[154px_minmax(0,1fr)] gap-3">
+              <aside className="view-in flex min-w-0 flex-col gap-3 xl:min-h-0">
                 <ManagerDecisionsCard onOpenQueue={openQueue} />
-                <div className="flex min-h-0">
-                  <QueueCard onOpenQueue={openQueue} />
+                <div className="h-[320px] xl:h-auto xl:min-h-0 xl:flex-1">
+                  <TelemetryMapCard />
                 </div>
               </aside>
             </>
           ) : (
-            <main className="col-span-2 min-h-0 min-w-0">
+            // key remounts the view on every tab change so .view-in replays.
+            <main key={activeTab} className="view-in min-w-0 xl:col-span-2 xl:min-h-0">
               {activeTab === 'analytics' && <AnalyticsView />}
               {activeTab === 'stock-overview' && <StockOverviewView />}
               {activeTab === 'sensors' && <SensorsView />}
@@ -118,7 +101,6 @@ export default function DesktopDashboard({
             onThemeChange={changeTheme}
           />
         )}
-      </div>
       </div>
     </InventoryProvider>
   )

@@ -12,14 +12,14 @@ export default function App() {
           <span className="mx-auto grid size-12 place-items-center rounded-xl bg-fg text-night">
             <Snowflake className="size-6" strokeWidth={2.3} />
           </span>
-          <p className="mt-5 text-[20px] font-bold">You’re logged out</p>
-          <p className="mt-2 text-[11px] leading-relaxed text-muted">
+          <p className="mt-5 text-2xl font-bold">You’re logged out</p>
+          <p className="mt-2 text-xs leading-relaxed text-muted">
             Your FreshOps dashboard session has ended on this device.
           </p>
           <button
             type="button"
             onClick={() => setLoggedOut(false)}
-            className="mt-6 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-sky text-[10.5px] font-bold text-night hover:brightness-105"
+            className="mt-6 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-accent text-xs font-bold text-night hover:brightness-105"
           >
             <LogIn className="size-4" />
             Return to dashboard

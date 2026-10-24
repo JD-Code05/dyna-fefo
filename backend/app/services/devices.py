@@ -19,16 +19,20 @@ def _check_zone(db: Session, zone_id: str) -> None:
 
 
 def create_device(db: Session, user: User, body: DeviceCreate) -> tuple[Device, str]:
-    if db.get(Device, body.id) is not None:
+    existing = db.get(Device, body.id)
+    if existing is not None and existing.deleted_at is None:
         raise ApiError(409, "device_id_taken", f"Device id '{body.id}' is already used")
     _check_zone(db, body.zone_id)
     key = secrets.token_urlsafe(24)
-    dev = Device(id=body.id, name=body.name, zone_id=body.zone_id,
-                 api_key_hash=hashlib.sha256(key.encode()).hexdigest())
+    # A deleted device keeps its row (audit, telemetry); re-adding the same hardware revives it with a new key.
+    before = snapshot(existing, FIELDS) if existing else None
+    dev = existing or Device(id=body.id)
+    dev.name, dev.zone_id, dev.deleted_at = body.name, body.zone_id, None
+    dev.api_key_hash = hashlib.sha256(key.encode()).hexdigest()
     db.add(dev)
     db.flush()
     db.refresh(dev)
-    record(db, user, AuditAction.create, AuditEntity.device, dev.id, None, snapshot(dev, FIELDS))
+    record(db, user, AuditAction.create, AuditEntity.device, dev.id, before, snapshot(dev, FIELDS))
     db.commit()
     return dev, key
 

@@ -28,8 +28,11 @@ def ingest(db: Session, data: TelemetryIn, device_key: str | None) -> bool:
     if data.zone_id != dev.zone_id:
         raise ApiError(422, "zone_mismatch", f"Device {dev.id} belongs to zone {dev.zone_id}")
     # PK includes ts, so dedupe on (device_id, seq) explicitly.
-    if db.scalar(select(func.count()).select_from(Telemetry).where(
-            Telemetry.device_id == data.device_id, Telemetry.seq == data.seq)):
+    if db.scalar(
+        select(func.count())
+        .select_from(Telemetry)
+        .where(Telemetry.device_id == data.device_id, Telemetry.seq == data.seq)
+    ):
         return False
     db.add(Telemetry(**data.model_dump()))
     try:
@@ -57,6 +60,7 @@ def history(db: Session, zone_id: str, start: datetime, end: datetime) -> Histor
     rows = db.execute(
         select(b, func.avg(Telemetry.temperature_c), func.avg(Telemetry.humidity_pct))
         .where(Telemetry.zone_id == zone_id, Telemetry.ts >= start, Telemetry.ts <= end)
-        .group_by(b).order_by(b)
+        .group_by(b)
+        .order_by(b)
     ).all()
     return HistoryOut(zone_id=zone_id, points=[Point(ts=r[0], temperature_c=r[1], humidity_pct=r[2]) for r in rows])

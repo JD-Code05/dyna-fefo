@@ -19,17 +19,42 @@ from app.db.models import (
 from app.schemas.batches import BatchCreate, BatchOut, BatchUpdate
 from app.services.audit import changed, record, snapshot
 
-FIELDS = ("id", "code", "product_id", "zone_id", "received_at", "printed_expiry", "quantity",
-          "notes", "status", "created_at", "deleted_at")
-OUT_FIELDS = ("id", "code", "product_id", "zone_id", "received_at", "printed_expiry", "quantity",
-              "notes", "status", "created_at", "updated_at", "deleted_at")
+FIELDS = (
+    "id",
+    "code",
+    "product_id",
+    "zone_id",
+    "received_at",
+    "printed_expiry",
+    "quantity",
+    "notes",
+    "status",
+    "created_at",
+    "deleted_at",
+)
+OUT_FIELDS = (
+    "id",
+    "code",
+    "product_id",
+    "zone_id",
+    "received_at",
+    "printed_expiry",
+    "quantity",
+    "notes",
+    "status",
+    "created_at",
+    "updated_at",
+    "deleted_at",
+)
 
 
 def batch_query():
     """Batch + product name + state (LEFT JOIN: null until the worker has computed it)."""
-    return (select(Batch, Product.name, BatchState)
-            .join(Product, Product.id == Batch.product_id)
-            .outerjoin(BatchState, BatchState.batch_id == Batch.id))
+    return (
+        select(Batch, Product.name, BatchState)
+        .join(Product, Product.id == Batch.product_id)
+        .outerjoin(BatchState, BatchState.batch_id == Batch.id)
+    )
 
 
 def to_out(batch: Batch, product_name: str, state: BatchState | None) -> BatchOut:

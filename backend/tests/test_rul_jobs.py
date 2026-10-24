@@ -3,13 +3,18 @@ from datetime import timedelta
 import pytest
 from conftest import NOW
 
+from app.core.config import get_settings
 from app.db.models import Batch, BatchState, BatchStateHistory, Telemetry
 from app.services.rul_jobs import recompute_all, recompute_batch
 
 
 def add_readings(db, zone, start, temps, device="esp32-chiller-01"):
     for i, T in enumerate(temps):
-        db.add(Telemetry(device_id=device, zone_id=zone, ts=start + timedelta(hours=i), seq=i, temperature_c=T, humidity_pct=85))
+        db.add(
+            Telemetry(
+                device_id=device, zone_id=zone, ts=start + timedelta(hours=i), seq=i, temperature_c=T, humidity_pct=85
+            )
+        )
     db.commit()
 
 
@@ -63,11 +68,22 @@ def test_rul_endpoint(client, db, seeded, products):
 
 def test_unknown_product_skipped_others_computed(db, seeded, products):
     from app.db.models import Product
+
     db.merge(Product(**{**products["chicken-breast"].model_dump(), "id": "fish"}))
     db.query(Batch).filter_by(code="CHK-004").one().product_id = "fish"
     db.commit()
     states = recompute_all(db, products, NOW)
     assert len(states) == 3 and db.query(BatchState).count() == 3
+
+
+@pytest.mark.parametrize(("sim", "expected_age"), [(True, 100), (False, 12)])
+def test_sim_mode_clock_is_zones_latest_reading(db, seeded, products, monkeypatch, sim, expected_age):
+    monkeypatch.setattr(get_settings(), "sim_mode", sim)
+    b = db.query(Batch).filter_by(code="CHK-001").one()  # received 12 h ago (wall clock)
+    add_readings(db, "chiller-a", b.received_at, [4])
+    add_readings(db, "chiller-a", b.received_at + timedelta(hours=100), [4])  # SIM_SPEEDUP ran 88 h ahead
+    state = next(s for s in recompute_all(db, products) if s.batch_id == b.id)
+    assert state.effective_age_h == pytest.approx(expected_age, abs=0.1)
 
 
 def test_future_readings_ignored(db, seeded, products):

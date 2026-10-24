@@ -3,19 +3,17 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, ty
 export type TrendPoint = { ts: string; value: number }
 
 // A fixed sample count keeps the path's command count constant, so its `d` can transition between updates.
-const SAMPLES = 32
+const SAMPLES = 96
 const PAD = { left: 36, right: 16, top: 12, bottom: 24 }
 
 const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
 
-/** Fixed-length series: bucket averages when there are more readings than samples, linear interpolation when fewer. */
+/**
+ * Fixed-length series sampled along the real readings (linear interpolation at evenly spaced positions).
+ * Not bucket averages: the first and last samples must equal the first and last readings, or the
+ * "now" dot drawn at the latest reading floats off the end of the line.
+ */
 function resample(values: number[], n: number) {
-  if (values.length > n) {
-    return Array.from({ length: n }, (_, i) => {
-      const bucket = values.slice(Math.floor((i * values.length) / n), Math.floor(((i + 1) * values.length) / n))
-      return bucket.reduce((s, v) => s + v, 0) / bucket.length
-    })
-  }
   return Array.from({ length: n }, (_, i) => {
     const t = (i / (n - 1)) * (values.length - 1)
     const a = Math.floor(t)
@@ -62,7 +60,6 @@ export default function TrendChart({
   useEffect(() => {
     const el = box.current
     if (!el) return
-    // Layout size (not the scaled visual size), so the chart stays crisp inside the scaled dashboard frame.
     const ro = new ResizeObserver(([entry]) => setSize({ w: entry.contentRect.width, h: entry.contentRect.height }))
     ro.observe(el)
     return () => ro.disconnect()
@@ -83,7 +80,17 @@ export default function TrendChart({
   const last = points.at(-1)
   const at = (i: number) => ({ x: xAt(i / (points.length - 1)), y: yAt(points[i].value) })
   const end = enough ? at(points.length - 1) : { x: 0, y: 0 }
-  const shown = active == null ? null : { ...at(active), point: points[active] }
+  // Hover dot sits on the drawn line (sampled), while the tooltip shows the exact reading.
+  const lineYAt = (fraction: number) => {
+    const t = fraction * (SAMPLES - 1)
+    const a = Math.floor(t)
+    const b = Math.min(SAMPLES - 1, a + 1)
+    return yAt(ys[a] + (ys[b] - ys[a]) * (t - a))
+  }
+  const shown =
+    active == null || !enough
+      ? null
+      : { x: at(active).x, y: lineYAt(active / (points.length - 1)), point: points[active] }
   const xTicks = enough ? [0, 1, 2, 3].map((q) => Math.round((q / 3) * (points.length - 1))) : []
 
   const pick = (e: PointerEvent<SVGRectElement>) => {
@@ -101,7 +108,7 @@ export default function TrendChart({
   return (
     <div ref={box} className="relative h-full w-full">
       {!enough ? (
-        <p className="grid h-full place-items-center text-[11px] text-muted">No readings in the last hour</p>
+        <p className="grid h-full place-items-center text-xs text-muted">No readings in the last hour</p>
       ) : (
         <>
           <svg
@@ -113,12 +120,12 @@ export default function TrendChart({
             onKeyDown={step}
             onFocus={() => setActive(points.length - 1)}
             onBlur={() => setActive(null)}
-            className="block rounded-md outline-none focus-visible:ring-2 focus-visible:ring-sky/60"
+            className="block rounded-md outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
           >
             {ticks.map((t) => (
               <g key={t}>
                 <line x1={PAD.left} x2={PAD.left + plotW} y1={yAt(t)} y2={yAt(t)} stroke="var(--color-line)" strokeWidth="1" />
-                <text x={PAD.left - 8} y={yAt(t)} dy="0.32em" textAnchor="end" className="fill-muted font-mono text-[10px]">
+                <text x={PAD.left - 8} y={yAt(t)} dy="0.32em" textAnchor="end" className="fill-muted font-mono text-xs">
                   {t}
                 </text>
               </g>
@@ -126,7 +133,7 @@ export default function TrendChart({
             {threshold && (
               <g>
                 <line x1={PAD.left} x2={PAD.left + plotW} y1={yAt(threshold.value)} y2={yAt(threshold.value)} stroke="var(--color-danger)" strokeOpacity="0.6" strokeWidth="1" />
-                <text x={PAD.left + plotW} y={yAt(threshold.value) - 5} textAnchor="end" className="fill-muted font-mono text-[9.5px]">
+                <text x={PAD.left + plotW} y={yAt(threshold.value) - 5} textAnchor="end" className="fill-muted font-mono text-xs">
                   {threshold.label}
                 </text>
               </g>
@@ -147,7 +154,7 @@ export default function TrendChart({
                 x={at(i).x}
                 y={base + 16}
                 textAnchor={k === 0 ? 'start' : k === xTicks.length - 1 ? 'end' : 'middle'}
-                className="fill-muted font-mono text-[10px]"
+                className="fill-muted font-mono text-xs"
               >
                 {fmtTime(points[i].ts)}
               </text>
@@ -179,11 +186,11 @@ export default function TrendChart({
                 top: Math.max(0, shown.y - 46),
               }}
             >
-              <p className="font-mono text-[12px] font-bold tabular-nums text-fg">
+              <p className="font-mono text-xs font-bold tabular-nums text-fg">
                 {shown.point.value.toFixed(1)}
-                <span className="ml-0.5 text-[10px] font-medium text-muted">{unit}</span>
+                <span className="ml-0.5 text-xs font-medium text-muted">{unit}</span>
               </p>
-              <p className="font-mono text-[10px] text-muted">{fmtTime(shown.point.ts)}</p>
+              <p className="font-mono text-xs text-muted">{fmtTime(shown.point.ts)}</p>
             </div>
           )}
         </>

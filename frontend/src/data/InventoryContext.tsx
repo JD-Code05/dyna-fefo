@@ -83,7 +83,10 @@ const timeAgo = (iso: string) => {
   return s < 60 ? `${s}s ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : `${Math.round(s / 3600)} h ago`
 }
 
-function recText(r: Recommendation | null): string {
+function recText(r: Recommendation | null, approved: Recommendation | null, status: Batch['status']): string {
+  if (!r && approved?.type === 'SALVAGE') return status === 'salvaged' ? 'Salvaged · approved by supervisor' : 'Salvage approved · mark batch as salvaged'
+  // Dispatch approvals made before the backend set the status on approval stay active.
+  if (!r && approved) return status === 'dispatched' ? 'Dispatched · approved by supervisor' : 'Dispatch approved · mark batch as dispatched'
   if (!r) return 'No action needed · within shelf life'
   const pct = Math.round(Number(r.rationale.rul_ratio ?? 0) * 100)
   return r.type === 'SALVAGE'
@@ -98,7 +101,7 @@ const activityFor = (b: Batch): StockRecord['activity'] =>
       ? { state: 'hold', label: 'Salvaged', detail: 'Removed from sale', updated: timeAgo(b.updated_at) }
       : { state: 'stored', label: 'In storage', detail: `Monitored in ${b.zone_id}`, updated: timeAgo(b.updated_at) }
 
-function toStock(b: Batch, series: number[], rec: Recommendation | null): StockRecord {
+function toStock(b: Batch, series: number[], rec: Recommendation | null, approved: Recommendation | null): StockRecord {
   // Shelf-life clock: the zone's simulated time when SIM_SPEEDUP runs ahead of the wall clock.
   const now = b.predicted_expiry && b.rul_h != null ? new Date(b.predicted_expiry).getTime() - b.rul_h * HOUR : Date.now()
   const peak = series.length ? Math.max(...series) : 0
@@ -119,7 +122,7 @@ function toStock(b: Batch, series: number[], rec: Recommendation | null): StockR
     dynamicHours: b.rul_h == null ? Math.max(0, hoursUntil(b.printed_expiry, now)) : Math.round(b.rul_h),
     printedExpiry: b.printed_expiry,
     predictedExpiry: b.predicted_expiry,
-    rec: recText(rec),
+    rec: recText(rec, approved, b.status),
     action: rec?.type === 'SALVAGE' ? 'audit' : rec ? 'dispatch' : 'review',
     recommendation: rec,
     category: b.product_name,
@@ -154,11 +157,12 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      const [batches, devices, zones, recs, products] = await Promise.all([
+      const [batches, devices, zones, recs, approvedRecs, products] = await Promise.all([
         api<Page<Batch>>('/batches?limit=200'),
         api<Page<Device>>('/devices?limit=200'),
         api<Page<Zone>>('/zones?limit=200'),
         api<Page<Recommendation>>('/recommendations?status=pending&limit=200'),
+        api<Page<Recommendation>>('/recommendations?status=approved&limit=200'),
         api<Page<Schemas['ProductConfig']>>('/products'),
       ])
       const histories = await Promise.all(
@@ -177,8 +181,13 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       for (const r of recs.items) {
         if (!recFor.has(r.batch_id) || r.type === 'SALVAGE') recFor.set(r.batch_id, r)
       }
+      // Approved ones only label the batch; approve buttons still read pending recommendations.
+      const approvedFor = new Map<number, Recommendation>()
+      for (const r of approvedRecs.items) {
+        if (!approvedFor.has(r.batch_id) || r.type === 'SALVAGE') approvedFor.set(r.batch_id, r)
+      }
       const zoneById = new Map(zones.items.map((z) => [z.id, z]))
-      setStocks(batches.items.map((b) => toStock(b, series.get(b.zone_id) ?? [], recFor.get(b.id) ?? null)))
+      setStocks(batches.items.map((b) => toStock(b, series.get(b.zone_id) ?? [], recFor.get(b.id) ?? null, approvedFor.get(b.id) ?? null)))
       setSensors(devices.items.map((d) => toSensor(d, zoneById.get(d.zone_id))))
       setRecommendations(recs.items)
       setHistories(histories)

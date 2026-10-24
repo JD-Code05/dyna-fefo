@@ -4,37 +4,27 @@
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 
-  --color-canvas: #141518;
-  --color-ink: #141518;
-  --color-dock: #1e1f24;
-  --color-panel: #222328;
-  --color-panel-2: #2d2e35;
-  --color-coral: #ff6b55;
-  --color-ice: #aee6e6;
-  --color-sage: #d4e2d4;
-  --color-amber: #f9d074;
-  --color-peri: #7371fc;
-  --color-live: #3ddc84;
-
-  /* Enterprise desktop theme: one neutral surface, accents reserved for data and status. */
-  --color-night: #0f1014;
-  --color-surface: #18191e;
-  --color-raised: #1d1e24;
-  --color-line: #262830;
-  --color-track: #22242b;
-  --color-pill: #242630;
-  --color-fg: #f4f5f7;
-  --color-muted: #8e929e;
-  --color-sky: #38bdf8;
-  --color-danger: #ff5c5c;
+  /* Warm-black dark theme: near-black page, warm charcoal surfaces, hue reserved for action and status. */
+  --color-night: #0a0a0a;
+  --color-surface: #131211;
+  --color-raised: #1a1817;
+  --color-line: #2a2725;
+  --color-track: #211f1d;
+  --color-pill: #262220;
+  --color-fg: #f4f1ec;
+  --color-muted: #948e87;
+  /* Orange marks actions and selection only; it sits 32deg from danger and 29deg from warn (OKLCH hue). */
+  --color-accent: #f2763a;
+  /* Neutral data series (remaining life bars, temperature line), so charts never compete with status hues. */
+  --color-series: #bdb6ae;
+  --color-danger: #ff5277;
   --color-warn: #f5a623;
   --color-ok: #10b981;
-  --color-violet: #a78bfa;
 }
 
 html,
 body {
-  background: var(--color-canvas);
+  background: var(--color-night);
 }
 
 body {
@@ -52,11 +42,11 @@ body {
   --color-pill: #e4e8ee;
   --color-fg: #172033;
   --color-muted: #5b6475;
-  --color-sky: #0369a1;
-  --color-danger: #c42b2b;
+  --color-accent: #b8442a;
+  --color-series: #4a5366;
+  --color-danger: #b8173f;
   --color-warn: #9a5a00;
   --color-ok: #04724f;
-  --color-violet: #7c5bd4;
   color-scheme: light;
 }
 
@@ -77,37 +67,9 @@ body {
   --tw-ring-color: rgb(23 32 51 / 0.14);
 }
 
-.hatch {
-  background-image: repeating-linear-gradient(
-    135deg,
-    rgb(20 21 24 / 0.32) 0 1.5px,
-    transparent 1.5px 6px
-  );
-}
 
-.hatch-dark {
-  background-image: repeating-linear-gradient(
-    135deg,
-    #141518 0 2px,
-    rgb(20 21 24 / 0.2) 2px 6px
-  );
-}
 
-.hatch-coral {
-  background-image: repeating-linear-gradient(
-    135deg,
-    rgb(255 107 85 / 0.75) 0 2px,
-    rgb(255 107 85 / 0.12) 2px 5px
-  );
-}
 
-.hatch-amber {
-  background-image: repeating-linear-gradient(
-    135deg,
-    rgb(249 208 116 / 0.7) 0 2px,
-    rgb(249 208 116 / 0.1) 2px 5px
-  );
-}
 
 .hatch-muted {
   background-image: repeating-linear-gradient(
@@ -120,16 +82,16 @@ body {
 .hatch-danger {
   background-image: repeating-linear-gradient(
     135deg,
-    rgb(255 92 92 / 0.85) 0 1.5px,
-    rgb(255 92 92 / 0.1) 1.5px 5px
+    rgb(255 82 119 / 0.85) 0 1.5px,
+    rgb(255 82 119 / 0.1) 1.5px 5px
   );
 }
 
 .theme-light .hatch-danger {
   background-image: repeating-linear-gradient(
     135deg,
-    rgb(220 63 63 / 0.7) 0 1.5px,
-    rgb(220 63 63 / 0.08) 1.5px 5px
+    rgb(184 23 63 / 0.7) 0 1.5px,
+    rgb(184 23 63 / 0.08) 1.5px 5px
   );
 }
 
@@ -216,13 +178,90 @@ body {
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--color-sky);
+  outline: 2px solid var(--color-accent);
   outline-offset: 1px;
 }
 
 /* Chart updates morph instead of jumping (every 5 s poll). Chromium transitions `d`; other browsers update instantly. */
 :root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* Tab switch: the new view settles in instead of teleporting. Fast, because tabs change many times a day. */
+@keyframes view-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.view-in {
+  animation: view-in 180ms var(--ease-out);
+}
+
+/* Active-tab underline slides between tabs; positioned with transform so it never triggers layout. */
+.tab-indicator {
+  transform-origin: left;
+  transition: transform 200ms var(--ease-in-out);
+}
+
+/* Segmented filters: the clipped active copy slides to the clicked button (clip-path is compositor-friendly). */
+.segment-active {
+  transition: clip-path 200ms var(--ease-in-out);
+}
+
+/* Modals: centered, so they scale from the middle. Exit is shorter than entry; the system is responding. */
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@keyframes modal-out {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+.modal-in {
+  animation: modal-in 220ms var(--ease-out);
+}
+.modal-out {
+  animation: modal-out 150ms var(--ease-out) forwards;
+}
+.backdrop-in {
+  animation: fade-in 220ms var(--ease-out);
+}
+.backdrop-out {
+  animation: fade-out 150ms var(--ease-out) forwards;
+}
+
+/* Reduced motion: keep the fades that explain what changed, drop the movement. Modals still animate
+   (opacity only) because closing waits for animationend. */
+@media (prefers-reduced-motion: reduce) {
+  .view-in {
+    animation: fade-in 120ms var(--ease-out);
+  }
+  .tab-indicator,
+  .segment-active {
+    transition: none;
+  }
+  .modal-in {
+    animation: fade-in 150ms var(--ease-out);
+  }
+  .modal-out {
+    animation: fade-out 120ms var(--ease-out) forwards;
+  }
 }
 .chart-morph {
   transition: d 300ms var(--ease-in-out);

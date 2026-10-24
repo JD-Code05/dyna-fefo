@@ -15,7 +15,9 @@ class ApiError(Exception):
 
 
 def _resp(status: int, code: str, message: str, details=None) -> JSONResponse:
-    return JSONResponse(status_code=status, content={"error": {"code": code, "message": message, "details": details or {}}})
+    return JSONResponse(
+        status_code=status, content={"error": {"code": code, "message": message, "details": details or {}}}
+    )
 
 
 def register_error_handlers(app: FastAPI) -> None:

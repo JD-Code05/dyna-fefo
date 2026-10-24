@@ -5,7 +5,7 @@ import ShelfLifeComparisonBar from './ShelfLifeComparisonBar'
 import { card, CardHint, CardTitle, Dropdown } from './ui'
 
 const Label = ({ children }: { children: ReactNode }) => (
-  <p className="font-mono text-[9.5px] font-medium uppercase tracking-[0.08em] text-muted">{children}</p>
+  <p className=" text-xs font-medium text-muted">{children}</p>
 )
 
 export default function ShelfLifeCard() {
@@ -39,7 +39,7 @@ export default function ShelfLifeCard() {
           <Thermometer className="size-[18px]" strokeWidth={1.9} />
         </div>
         <div className="min-w-0">
-          <CardTitle className="text-[18px]">Dynamic Shelf-Life Decay</CardTitle>
+          <CardTitle className="text-base">Shelf-life decay</CardTitle>
           <CardHint>Sensor-adjusted remaining life per batch vs printed expiry</CardHint>
         </div>
         <div className="ml-auto">
@@ -50,9 +50,9 @@ export default function ShelfLifeCard() {
       <div className="mt-4 flex min-h-0 flex-1 gap-4">
         <div className="flex min-w-0 flex-1 flex-col rounded-xl border border-line bg-night/35 p-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 font-mono text-[10px] text-muted">
+            <div className="flex items-center gap-4 font-mono text-xs text-muted">
               <span className="flex items-center gap-1.5">
-                <i className="size-2 rounded-sm bg-sky" /> Sensor-adjusted RUL
+                <i className="size-2 rounded-sm bg-series" /> Sensor-adjusted RUL
               </span>
               <span className="flex items-center gap-1.5">
                 <i className="hatch-danger size-2 rounded-sm" /> Life lost
@@ -61,19 +61,19 @@ export default function ShelfLifeCard() {
                 <i className="size-2 rounded-sm bg-track ring-1 ring-inset ring-white/10" /> Printed life
               </span>
             </div>
-            <span className="font-mono text-[9.5px] uppercase tracking-[0.08em] text-muted">
+            <span className=" text-xs text-muted">
               Hours remaining
             </span>
           </div>
 
           <div className="mt-3 grid grid-cols-[112px_minmax(0,1fr)_42px] items-end gap-3 border-b border-line pb-2">
-            <span className="font-mono text-[9.5px] uppercase tracking-[0.08em] text-muted">Batch</span>
-            <div className="flex justify-between font-mono text-[9px] text-muted">
+            <span className=" text-xs text-muted">Batch</span>
+            <div className="flex justify-between font-mono text-xs text-muted">
               {[0, 0.25, 0.5, 0.75, 1].map((step) => (
                 <span key={step}>{Math.round(maxHours * step)}h</span>
               ))}
             </div>
-            <span className="text-right font-mono text-[9.5px] uppercase tracking-[0.08em] text-muted">RUL</span>
+            <span className="text-right text-xs text-muted">RUL</span>
           </div>
 
           <div className="relative min-h-0 flex-1 divide-y divide-line/70 overflow-y-auto overscroll-contain [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]">
@@ -96,8 +96,8 @@ export default function ShelfLifeCard() {
               <div className="grid h-full place-items-center text-center">
                 <div>
                   <Clock3 className="mx-auto size-6 text-muted" />
-                  <p className="mt-2 text-[11px] font-semibold text-fg">No stock in this zone</p>
-                  <p className="mt-1 text-[10px] text-muted">Choose another warehouse zone.</p>
+                  <p className="mt-2 text-xs font-semibold text-fg">No stock in this zone</p>
+                  <p className="mt-1 text-xs text-muted">Choose another warehouse zone.</p>
                 </div>
               </div>
             )}
@@ -108,7 +108,7 @@ export default function ShelfLifeCard() {
           <div className="rounded-xl border border-line bg-night/35 p-4">
             <div className="flex items-center justify-between">
               <Label>Portfolio health</Label>
-              <span className={`flex items-center gap-1 rounded-full border px-1.5 py-0.5 font-mono text-[10px] font-semibold ${
+              <span className={`flex items-center gap-1 rounded-full border px-1.5 py-0.5 font-mono text-xs font-semibold ${
                 avgLoss >= 20
                   ? 'border-danger/30 bg-danger/10 text-danger'
                   : 'border-ok/30 bg-ok/10 text-ok'
@@ -118,7 +118,7 @@ export default function ShelfLifeCard() {
               </span>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <Metric label="Avg RUL" value={`${avgRul}h`} tone="text-sky" />
+              <Metric label="Avg RUL" value={`${avgRul}h`} tone="text-fg" />
               <Metric label="At risk" value={`${atRisk}/${visible.length}`} tone={atRisk ? 'text-danger' : 'text-ok'} />
             </div>
           </div>
@@ -128,12 +128,12 @@ export default function ShelfLifeCard() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <Label>Selected batch</Label>
-                  <p className="mt-1.5 truncate font-mono text-[12px] font-semibold text-fg">{selected.id}</p>
-                  <p className="mt-0.5 truncate text-[9.5px] text-muted" title={selected.product}>
+                  <p className="mt-1.5 truncate font-mono text-xs font-semibold text-fg">{selected.id}</p>
+                  <p className="mt-0.5 truncate text-xs text-muted" title={selected.product}>
                     {selected.zone} · {selected.units} units
                   </p>
                 </div>
-                <span className={`shrink-0 rounded-full border px-2 py-1 font-mono text-[9.5px] font-semibold ${
+                <span className={`shrink-0 rounded-full border px-2 py-1 font-mono text-xs font-semibold ${
                   selected.dynamicHours < 24
                     ? 'border-danger/25 bg-danger/10 text-danger'
                     : selected.dynamicHours < 48
@@ -145,19 +145,19 @@ export default function ShelfLifeCard() {
               </div>
 
               <div className="mt-4">
-                <p className="font-mono text-[9.5px] uppercase tracking-[0.08em] text-muted">Remaining useful life</p>
-                <p className={`mt-1 text-[30px] font-bold leading-none ${
+                <p className=" text-xs text-muted">Remaining useful life</p>
+                <p className={`mt-1 text-2xl font-bold leading-none ${
                   selected.dynamicHours < 24
                     ? 'text-danger'
                     : selected.dynamicHours < 48
                       ? 'text-warn'
-                      : 'text-sky'
+                      : 'text-fg'
                 }`}>
-                  {selected.dynamicHours}<span className="ml-1 text-[13px] font-medium text-muted">HOURS</span>
+                  {selected.dynamicHours}<span className="ml-1 text-sm font-medium text-muted">hours</span>
                 </p>
               </div>
 
-              <div className="mt-auto space-y-1.5 pt-3 font-mono text-[10px]">
+              <div className="mt-auto space-y-1.5 pt-3 font-mono text-xs">
                 <DetailRow label="Printed life" value={`${selected.staticHours}h`} />
                 <DetailRow
                   label="Life lost"
@@ -174,7 +174,7 @@ export default function ShelfLifeCard() {
             </div>
           ) : (
             <div className="grid min-h-0 flex-1 place-items-center rounded-xl border border-line bg-night/35 p-4 text-center">
-              <p className="text-[10.5px] text-muted">No batch selected</p>
+              <p className="text-xs text-muted">No batch selected</p>
             </div>
           )}
         </aside>
@@ -200,15 +200,15 @@ function ShelfLifeBar({
       onClick={onSelect}
       aria-pressed={active}
       aria-label={`Batch ${batch.id}, ${batch.dynamicHours} hours remaining from ${batch.staticHours} printed hours`}
-      className={`relative grid h-[46px] w-full grid-cols-[112px_minmax(0,1fr)_42px] items-center gap-3 text-left outline-none transition-colors focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-sky/60 ${
-        active ? 'bg-sky/[0.055]' : 'hover:bg-white/[0.02]'
+      className={`relative grid h-[46px] w-full grid-cols-[112px_minmax(0,1fr)_42px] items-center gap-3 text-left outline-none transition-colors focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent/60 ${
+        active ? 'bg-accent/[0.055]' : 'hover:bg-white/[0.02]'
       }`}
     >
       <span className="min-w-0 pl-1">
-        <strong className={`block truncate font-mono text-[11px] ${active ? 'text-fg' : 'text-fg/80'}`}>
+        <strong className={`block truncate font-mono text-xs ${active ? 'text-fg' : 'text-fg/80'}`}>
           {batch.id}
         </strong>
-        <small className="mt-0.5 block truncate text-[9px] text-muted" title={batch.product}>{batch.product} · {batch.zone}</small>
+        <small className="mt-0.5 block truncate text-xs text-muted" title={batch.product}>{batch.product} · {batch.zone}</small>
       </span>
 
       <ShelfLifeComparisonBar
@@ -217,7 +217,7 @@ function ShelfLifeBar({
         maxHours={maxHours}
       />
 
-      <span className={`text-right font-mono text-[11px] font-bold ${
+      <span className={`text-right font-mono text-xs font-bold ${
         batch.dynamicHours < 24
           ? 'text-danger'
           : batch.dynamicHours < 48
@@ -233,8 +233,8 @@ function ShelfLifeBar({
 function Metric({ label, value, tone }: { label: string; value: string; tone: string }) {
   return (
     <div className="rounded-lg border border-line bg-surface/60 p-2.5">
-      <p className="font-mono text-[9px] uppercase tracking-[0.08em] text-muted">{label}</p>
-      <p className={`mt-1 text-[17px] font-bold leading-none ${tone}`}>{value}</p>
+      <p className=" text-xs text-muted">{label}</p>
+      <p className={`mt-1 text-base font-bold leading-none ${tone}`}>{value}</p>
     </div>
   )
 }

@@ -110,7 +110,7 @@ Conventions from CLAUDE.md apply: paginated lists `{ items, total, limit, offset
   - `rul_ratio < dispatch_ratio` (0.50) → `PRIORITY_DISPATCH`
   - otherwise no recommendation
 - One `pending` recommendation per batch and type, updated in place.
-- Approving a recommendation only records the decision. It does not change the batch's `status`; a supervisor sets `dispatched` or `salvaged` with `PATCH /batches/{id}`. (Builder's call, keeps the no-auto-apply rule.)
+- Approving a `PRIORITY_DISPATCH` recommendation sets an `active` batch's `status` to `dispatched` and writes a batch audit row (changed 2026-10-24, Lab 5 scenario). Approving `SALVAGE` only records the decision; a supervisor sets `salvaged` with `PATCH /batches/{id}`. Nothing changes without a supervisor decision.
 - A decision on a recommendation whose batch is deleted returns 404. (Builder's call.)
 
 ## Seed data

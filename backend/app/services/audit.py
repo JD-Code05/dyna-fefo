@@ -23,9 +23,23 @@ def changed(before: dict, after: dict) -> tuple[dict, dict]:
     return {k: before.get(k) for k in keys}, {k: after[k] for k in keys}
 
 
-def record(db: Session, user: User, action: AuditAction, entity: AuditEntity, entity_id: str,
-           before: dict | None, after: dict | None) -> AuditLog:
-    row = AuditLog(user_id=user.id, action=action.value, entity=entity.value, entity_id=str(entity_id),
-                   before=before, after=after, ts=datetime.now(UTC))
+def record(
+    db: Session,
+    user: User,
+    action: AuditAction,
+    entity: AuditEntity,
+    entity_id: str,
+    before: dict | None,
+    after: dict | None,
+) -> AuditLog:
+    row = AuditLog(
+        user_id=user.id,
+        action=action.value,
+        entity=entity.value,
+        entity_id=str(entity_id),
+        before=before,
+        after=after,
+        ts=datetime.now(UTC),
+    )
     db.add(row)
     return row
