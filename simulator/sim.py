@@ -3,6 +3,7 @@ import math
 import os
 import random
 import time
+import urllib.request
 from datetime import UTC, datetime, timedelta
 
 import paho.mqtt.client as mqtt
@@ -13,7 +14,20 @@ DEVICE_ID = os.getenv("DEVICE_ID", "esp32-chiller-01")
 ZONE_ID = os.getenv("ZONE_ID", "chiller-a")
 INTERVAL_S = float(os.getenv("INTERVAL_S", "5"))
 MQTT_HOST = os.getenv("MQTT_HOST", "mqtt")
+API_URL = os.getenv("API_URL", "http://api:8000/api/v1")
 H = 3600.0
+
+
+def resume_from(now: datetime) -> datetime:
+    """Continue after the zone's latest stored reading, so a restart never rewinds a clock that SIM_SPEEDUP ran ahead."""
+    try:
+        # shortcut: unauthenticated /zones call; needs a token once login exists
+        with urllib.request.urlopen(f"{API_URL}/zones", timeout=5) as r:
+            zone = next(z for z in json.load(r)["items"] if z["id"] == ZONE_ID)
+        latest = datetime.fromisoformat(zone["latest"]["ts"])
+        return max(now, latest + timedelta(seconds=INTERVAL_S * SPEEDUP))
+    except Exception:  # no API, no zone or no readings yet: start from now
+        return now
 
 
 def temperature(scenario: str, t: float) -> float:
@@ -39,7 +53,7 @@ def main() -> None:
         except OSError:
             time.sleep(2)
     client.loop_start()
-    start, n = datetime.now(UTC), 0
+    start, n = resume_from(datetime.now(UTC)), 0
     seq0 = int(time.time())  # survives restarts against a persisted DB
     while True:
         t = n * INTERVAL_S * SPEEDUP
