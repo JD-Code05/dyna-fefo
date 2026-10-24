@@ -3,6 +3,7 @@ from datetime import timedelta
 import pytest
 from conftest import NOW
 
+from app.core.config import get_settings
 from app.db.models import Batch, BatchState, BatchStateHistory, Telemetry
 from app.services.rul_jobs import recompute_all, recompute_batch
 
@@ -73,6 +74,16 @@ def test_unknown_product_skipped_others_computed(db, seeded, products):
     db.commit()
     states = recompute_all(db, products, NOW)
     assert len(states) == 3 and db.query(BatchState).count() == 3
+
+
+@pytest.mark.parametrize(("sim", "expected_age"), [(True, 100), (False, 12)])
+def test_sim_mode_clock_is_zones_latest_reading(db, seeded, products, monkeypatch, sim, expected_age):
+    monkeypatch.setattr(get_settings(), "sim_mode", sim)
+    b = db.query(Batch).filter_by(code="CHK-001").one()  # received 12 h ago (wall clock)
+    add_readings(db, "chiller-a", b.received_at, [4])
+    add_readings(db, "chiller-a", b.received_at + timedelta(hours=100), [4])  # SIM_SPEEDUP ran 88 h ahead
+    state = next(s for s in recompute_all(db, products) if s.batch_id == b.id)
+    assert state.effective_age_h == pytest.approx(expected_age, abs=0.1)
 
 
 def test_future_readings_ignored(db, seeded, products):

@@ -1,8 +1,10 @@
 import json
 from datetime import timedelta
 
+import pytest
 from conftest import NOW, NOW_ISO, iso
 
+from app.core.config import get_settings
 from app.db.models import Device, Telemetry
 from app.services.telemetry import handle_message
 
@@ -24,6 +26,13 @@ H = {"X-Device-Key": "dev-key-01"}
 def test_ingest_stores_and_dedupes(client, seeded):
     assert client.post("/api/v1/telemetry", json=payload(), headers=H).json() == {"stored": True}
     assert client.post("/api/v1/telemetry", json=payload(), headers=H).json() == {"stored": False}
+
+
+@pytest.mark.parametrize(("sim", "status"), [(False, 422), (True, 202)])
+def test_future_ts_rejected_unless_sim_mode(client, seeded, monkeypatch, sim, status):
+    monkeypatch.setattr(get_settings(), "sim_mode", sim)
+    future = payload(ts=iso(NOW + timedelta(hours=1)))
+    assert client.post("/api/v1/telemetry", json=future, headers=H).status_code == status
 
 
 def test_bad_key_401(client, seeded):
