@@ -28,6 +28,7 @@ const sections = [
 export type WorkspaceTab = (typeof sections)[number]['id']
 
 export default function DesktopHeader({
+  role,
   active,
   onChange,
   theme,
@@ -35,6 +36,7 @@ export default function DesktopHeader({
   onOpenSettings,
   onLogout,
 }: {
+  role: 'supervisor' | 'staff'
   active: WorkspaceTab
   onChange: (tab: WorkspaceTab) => void
   theme: 'dark' | 'light'
@@ -45,10 +47,12 @@ export default function DesktopHeader({
   const { sensors, error } = useInventory()
   const online = sensors.filter((sensor) => sensor.status !== 'No data').length
   const [accountOpen, setAccountOpen] = useState(false)
-  const [me, setMe] = useState<Schemas['MeOut'] | null>(null)
+  const [apiMe, setMe] = useState<Schemas['MeOut'] | null>(null)
   useEffect(() => {
     api<Schemas['MeOut']>('/me').then(setMe).catch(() => setMe(null))
   }, [])
+  // Draft: login is deferred and /me always answers demo-supervisor, so the staff view labels itself.
+  const me = role === 'staff' ? { username: 'demo-staff', role: 'staff' } : apiMe
   const accountRef = useRef<HTMLDivElement>(null)
   const navRef = useRef<HTMLElement>(null)
   // One underline that slides to the active tab; null until measured so it mounts in place instead of sliding in.
@@ -162,7 +166,7 @@ export default function DesktopHeader({
       </div>
 
       <div className="flex min-h-9 flex-wrap items-center gap-x-3 border-t border-line px-3">
-        <nav ref={navRef} aria-label="Application sections" className="relative flex h-9 max-w-full items-center gap-1 overflow-x-auto [scrollbar-width:none]">
+        <nav ref={navRef} aria-label="Application sections" hidden={role === 'staff'} className="relative flex h-9 max-w-full items-center gap-1 overflow-x-auto [scrollbar-width:none]">
           {sections.map(({ id, label, icon: Icon }) => {
             const isActive = active === id
             return (
@@ -198,11 +202,15 @@ export default function DesktopHeader({
             <span className={`size-1.5 rounded-full ${error ? 'bg-danger' : 'bg-ok'}`} />
             {error ? 'Backend offline' : `${online}/${sensors.length} sensors reporting`}
           </span>
-          <span className="h-3 w-px bg-line" />
-          <button type="button" onClick={onOpenSettings} className="flex items-center gap-1.5 hover:text-fg">
-            <Settings className="size-3.5" />
-            View settings
-          </button>
+          {role === 'supervisor' && (
+            <>
+              <span className="h-3 w-px bg-line" />
+              <button type="button" onClick={onOpenSettings} className="flex items-center gap-1.5 hover:text-fg">
+                <Settings className="size-3.5" />
+                View settings
+              </button>
+            </>
+          )}
         </div>
       </div>
     </header>
