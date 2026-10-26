@@ -13,9 +13,15 @@ export const metadata: Metadata = {
   icons: { icon: '/favicon.svg' },
 }
 
+// Applies the saved theme before first paint, so light mode doesn't flash dark while the app loads.
+const themeScript = `try{var t=localStorage.getItem('freshops-theme');if(t==='light'||(!t&&matchMedia('(prefers-color-scheme: light)').matches))document.documentElement.classList.add('theme-light')}catch(e){}`
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
+    <html lang="en" className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>{children}</body>
     </html>
   )
