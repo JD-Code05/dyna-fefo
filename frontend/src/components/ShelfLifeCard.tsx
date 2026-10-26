@@ -47,10 +47,10 @@ export default function ShelfLifeCard() {
         </div>
       </header>
 
-      <div className="mt-4 flex min-h-0 flex-1 gap-4">
+      <div className="mt-4 flex min-h-0 flex-1 flex-col gap-4 sm:flex-row">
         <div className="flex min-w-0 flex-1 flex-col rounded-xl border border-line bg-night/35 p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 font-mono text-xs text-muted">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs text-muted">
               <span className="flex items-center gap-1.5">
                 <i className="size-2 rounded-sm bg-series" /> Sensor-adjusted RUL
               </span>
@@ -70,7 +70,9 @@ export default function ShelfLifeCard() {
             <span className=" text-xs text-muted">Batch</span>
             <div className="flex justify-between font-mono text-xs text-muted">
               {[0, 0.25, 0.5, 0.75, 1].map((step) => (
-                <span key={step}>{Math.round(maxHours * step)}h</span>
+                <span key={step} className={step === 0 || step === 1 ? '' : 'max-sm:hidden'}>
+                  {Math.round(maxHours * step)}h
+                </span>
               ))}
             </div>
             <span className="text-right text-xs text-muted">RUL</span>
@@ -104,7 +106,7 @@ export default function ShelfLifeCard() {
           </div>
         </div>
 
-        <aside className="flex w-[220px] shrink-0 flex-col gap-3">
+        <aside className="flex shrink-0 sm:w-[220px] flex-col gap-3">
           <div className="rounded-xl border border-line bg-night/35 p-4">
             <div className="flex items-center justify-between">
               <Label>Portfolio health</Label>
