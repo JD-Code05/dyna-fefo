@@ -188,6 +188,13 @@ textarea:focus-visible {
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
+/* Theme switch: cross-fade (view transition) instead of a one-frame light/dark flip. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 300ms;
+  animation-timing-function: var(--ease-in-out);
+}
+
 /* Tab switch: the new view settles in instead of teleporting. Fast, because tabs change many times a day. */
 @keyframes view-in {
   from {

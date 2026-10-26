@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useLayoutEffect, useState } from 'react'
+import { flushSync } from 'react-dom'
 import Sidebar from './components/Sidebar'
 import ShelfLifeCard from './components/ShelfLifeCard'
 import TelemetryMapCard from './components/TelemetryMapCard'
@@ -31,25 +32,23 @@ export default function DesktopDashboard({
   const [settingsOpen, setSettingsOpen] = useState(false)
   const openQueue = useCallback(() => setQueueOpen(true), [])
   const closeQueue = useCallback(() => setQueueOpen(false), [])
-  const toggleTheme = useCallback(() => {
-    setTheme((current) => {
-      const next = current === 'dark' ? 'light' : 'dark'
-      window.localStorage.setItem('freshops-theme', next)
-      return next
-    })
-  }, [])
   const changeTheme = useCallback((next: 'dark' | 'light') => {
     window.localStorage.setItem('freshops-theme', next)
-    setTheme(next)
+    // Cross-fade the page instead of flipping every color in one frame; browsers without view transitions switch instantly.
+    if (!document.startViewTransition) return setTheme(next)
+    document.startViewTransition(() => flushSync(() => setTheme(next)))
   }, [])
+  const toggleTheme = useCallback(() => changeTheme(theme === 'dark' ? 'light' : 'dark'), [changeTheme, theme])
+  // The theme class lives on <html> so the page background and overscroll match too.
+  useLayoutEffect(() => {
+    document.documentElement.classList.toggle('theme-light', theme === 'light')
+  }, [theme])
 
   return (
     <InventoryProvider>
       {/* Fills the window at real size so browser zoom works; below xl the page stacks and scrolls. */}
       <div
-        className={`dashboard-scrollbars flex min-h-dvh flex-col bg-night font-sans text-fg xl:h-dvh xl:overflow-hidden ${
-          theme === 'light' ? 'theme-light' : ''
-        }`}
+        className="dashboard-scrollbars flex min-h-dvh flex-col bg-night font-sans text-fg xl:h-dvh xl:overflow-hidden"
       >
         <h1 className="sr-only">Dynamic Perishable Inventory Management System</h1>
         <DesktopHeader
