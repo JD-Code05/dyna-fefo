@@ -136,7 +136,7 @@ function ExpirationChart() {
           <CardTitle className="text-base">Estimated vs printed expiration</CardTitle>
           <CardHint>Remaining hours by batch · shortest life first</CardHint>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex gap-3 whitespace-nowrap font-mono text-xs text-muted">
             <span className="flex items-center gap-1.5"><i className="size-2 rounded-sm bg-series" /> Sensor RUL</span>
             <span className="flex items-center gap-1.5"><i className="hatch-danger size-2 rounded-sm" /> Life lost</span>
@@ -306,10 +306,10 @@ export function StockOverviewView() {
               return (
                 <div
                   key={batch.key}
-                  className="grid h-[48px] grid-cols-[1.05fr_1.2fr_0.9fr_0.8fr_0.85fr_0.65fr_70px] items-center gap-3 px-3 transition-colors hover:bg-white/[0.02]"
+                  className="grid min-h-[48px] grid-cols-[1.05fr_1.2fr_0.9fr_0.8fr_0.85fr_0.65fr_70px] items-center gap-3 px-3 py-1.5 transition-colors hover:bg-white/[0.02]"
                 >
                   <span className="min-w-0">
-                    <strong className="block truncate text-xs text-fg" title={batch.product}>{batch.product}</strong>
+                    <strong className="block text-xs text-fg" title={batch.product}>{batch.product}</strong>
                     <small className="block truncate text-xs text-muted">{batch.activity.label}</small>
                   </span>
                   <span className="text-xs leading-snug text-muted">{batch.detail || '—'}</span>
@@ -532,7 +532,7 @@ export function SensorsView() {
               filteredSensors.map((sensor) => (
                 <div
                   key={sensor.key}
-                  className={`grid h-[42px] grid-cols-[minmax(0,1fr)_30px] items-center gap-1.5 px-2 transition-colors ${
+                  className={`grid min-h-[42px] grid-cols-[minmax(0,1fr)_30px] items-center gap-1.5 px-2 py-1.5 transition-colors ${
                     selectedKey === sensor.key ? 'bg-accent/[0.06]' : 'hover:bg-white/[0.025]'
                   }`}
                 >
@@ -542,7 +542,7 @@ export function SensorsView() {
                     className="grid h-full w-full grid-cols-[1.35fr_1fr_80px_76px_76px_82px] items-center gap-3 text-left"
                   >
                     <span className="flex min-w-0 items-center gap-1.5">
-                      <strong className="min-w-0 flex-1 truncate text-xs leading-none text-fg" title={sensor.name}>{sensor.name}</strong>
+                      <strong className="min-w-0 flex-1 text-xs leading-tight text-fg" title={sensor.name}>{sensor.name}</strong>
                       <small className="shrink-0 rounded bg-pill px-1 py-0.5 font-mono text-xs leading-none text-muted">{sensor.id}</small>
                     </span>
                     <span className="flex items-center gap-1.5 truncate text-xs text-muted"><MapPin className="size-3" />{sensor.location}</span>

@@ -22,16 +22,16 @@ export default function QueueCard() {
             </span>
             {atRiskProducts.length} require attention
           </span>
-          <p className="line-clamp-2 min-w-0 text-xs leading-snug text-muted">
+          <p className="min-w-0 text-xs leading-snug text-muted sm:line-clamp-2">
             Batches with a pending dispatch or salvage recommendation, ranked by remaining life.
           </p>
         </div>
       </header>
 
-      <div className="mt-3 grid grid-cols-[minmax(0,1fr)_120px_96px] gap-2 border-b border-line px-1 pb-2 text-xs text-muted">
+      <div className="mt-3 grid grid-cols-1 gap-2 border-b border-line px-1 pb-2 text-xs text-muted sm:grid-cols-[minmax(0,1fr)_120px_96px]">
         <span>Product &amp; exposure</span>
-        <span>RUL</span>
-        <span className="text-right">Action</span>
+        <span className="hidden sm:block">RUL</span>
+        <span className="hidden text-right sm:block">Action</span>
       </div>
 
       <ul className="min-h-0 flex-1 divide-y divide-line overflow-y-auto overscroll-contain [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]">
@@ -49,8 +49,8 @@ export default function QueueCard() {
           const loss = Math.max(0, Math.round(((batch.staticHours - batch.dynamicHours) / Math.max(1, batch.staticHours)) * 100))
 
           return (
-            <li key={batch.id} className="grid h-[50px] grid-cols-[minmax(0,1fr)_120px_96px] items-center gap-2 px-1">
-              <div className="min-w-0">
+            <li key={batch.id} className="grid min-h-[50px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 px-1 py-2 sm:h-[50px] sm:grid-cols-[minmax(0,1fr)_120px_96px] sm:py-0">
+              <div className="col-span-2 min-w-0 sm:col-span-1">
                 <div className="flex items-center gap-2">
                   <span className={`size-2 shrink-0 rounded-full ${critical ? 'bg-danger' : 'bg-warn'}`} />
                   <p className="truncate text-xs font-semibold text-fg">{batch.product}</p>

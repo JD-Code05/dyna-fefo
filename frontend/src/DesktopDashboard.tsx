@@ -67,7 +67,7 @@ export default function DesktopDashboard({
             <>
               {/* Hero: what needs a decision now. The shelf-life chart below is the evidence for it. */}
               <main className="view-in flex min-w-0 flex-col gap-3 xl:min-h-0">
-                <div className="flex h-[420px] shrink-0 xl:h-[46%]">
+                <div className="flex shrink-0 sm:h-[420px] xl:h-[46%]">
                   <QueueCard />
                 </div>
                 <div className="h-[560px] xl:h-auto xl:min-h-0 xl:flex-1">

@@ -129,7 +129,7 @@ export default function ShelfLifeCard() {
                 <div className="min-w-0">
                   <Label>Selected batch</Label>
                   <p className="mt-1.5 truncate font-mono text-xs font-semibold text-fg">{selected.id}</p>
-                  <p className="mt-0.5 truncate text-xs text-muted" title={selected.product}>
+                  <p className="mt-0.5 text-xs text-muted" title={selected.product}>
                     {selected.zone} · {selected.units} units
                   </p>
                 </div>
@@ -200,7 +200,7 @@ function ShelfLifeBar({
       onClick={onSelect}
       aria-pressed={active}
       aria-label={`Batch ${batch.id}, ${batch.dynamicHours} hours remaining from ${batch.staticHours} printed hours`}
-      className={`relative grid h-[46px] w-full grid-cols-[112px_minmax(0,1fr)_42px] items-center gap-3 text-left outline-none transition-colors focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent/60 ${
+      className={`relative grid min-h-[46px] w-full grid-cols-[112px_minmax(0,1fr)_42px] items-center py-1.5 gap-3 text-left outline-none transition-colors focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent/60 ${
         active ? 'bg-accent/[0.055]' : 'hover:bg-white/[0.02]'
       }`}
     >
@@ -208,7 +208,7 @@ function ShelfLifeBar({
         <strong className={`block truncate font-mono text-xs ${active ? 'text-fg' : 'text-fg/80'}`}>
           {batch.id}
         </strong>
-        <small className="mt-0.5 block truncate text-xs text-muted" title={batch.product}>{batch.product} · {batch.zone}</small>
+        <small className="mt-0.5 block text-xs text-muted" title={batch.product}>{batch.product} · {batch.zone}</small>
       </span>
 
       <ShelfLifeComparisonBar

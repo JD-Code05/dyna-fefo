@@ -91,7 +91,7 @@ export default function DesktopHeader({
   return (
     <header className="shrink-0 border-b border-line bg-surface">
       <div className="flex h-14 items-center gap-5 px-4">
-        <div className="flex w-[218px] shrink-0 items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3 sm:w-[218px]">
           <span className="grid size-9 place-items-center rounded-lg bg-fg text-night">
             <Snowflake className="size-[18px]" strokeWidth={2.3} />
           </span>
@@ -115,7 +115,7 @@ export default function DesktopHeader({
             className="flex h-9 items-center gap-2 rounded-lg border border-line bg-night/50 px-2.5 text-xs font-semibold text-muted transition-colors hover:text-fg"
           >
             {theme === 'dark' ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
-            {theme === 'dark' ? 'Light' : 'Dark'}
+            <span className="hidden sm:inline">{theme === 'dark' ? 'Light' : 'Dark'}</span>
           </button>
           <span className="mx-2 h-6 w-px bg-line" />
           <div ref={accountRef} className="relative">
@@ -129,7 +129,7 @@ export default function DesktopHeader({
               <span className="grid size-7 place-items-center rounded-full bg-pill text-xs font-bold text-fg">
                 {(me?.username ?? '?').slice(0, 2).toUpperCase()}
               </span>
-              <span>
+              <span className="hidden sm:block">
                 <span className="block text-xs font-semibold leading-none text-fg">{me?.username ?? 'Not signed in'}</span>
                 <span className="mt-1 block text-xs text-muted">
                   {me?.role ?? '—'}
