@@ -15,11 +15,16 @@ import {
   SensorsView,
   StockOverviewView,
 } from './components/WorkspaceViews'
+import PullListCard from './components/PullListCard'
 import { InventoryProvider } from './data/InventoryContext'
 
+export type Role = 'supervisor' | 'staff'
+
 export default function DesktopDashboard({
+  role,
   onLogout,
 }: {
+  role: Role
   onLogout: () => void
 }) {
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -52,6 +57,7 @@ export default function DesktopDashboard({
       >
         <h1 className="sr-only">Dynamic Perishable Inventory Management System</h1>
         <DesktopHeader
+          role={role}
           active={activeTab}
           onChange={setActiveTab}
           theme={theme}
@@ -59,39 +65,58 @@ export default function DesktopDashboard({
           onOpenSettings={() => setSettingsOpen(true)}
           onLogout={onLogout}
         />
-        <div className="grid flex-1 grid-cols-1 gap-3 p-3 xl:min-h-0 xl:grid-cols-[250px_minmax(0,1fr)_340px]">
-          <Sidebar onSelectTab={setActiveTab} onOpenQueue={openQueue} />
-
-          {activeTab === 'overview' ? (
-            <>
-              {/* Hero: what needs a decision now. The shelf-life chart below is the evidence for it. */}
-              <main className="view-in flex min-w-0 flex-col gap-3 xl:min-h-0">
-                <div className="flex shrink-0 sm:h-[420px] xl:h-[46%]">
-                  <QueueCard />
-                </div>
-                <div className="sm:h-[560px] xl:h-auto xl:min-h-0 xl:flex-1">
-                  <ShelfLifeCard />
-                </div>
-              </main>
-
-              <aside className="view-in flex min-w-0 flex-col gap-3 xl:min-h-0">
-                <ManagerDecisionsCard onOpenQueue={openQueue} />
-                <div className="h-[320px] xl:h-auto xl:min-h-0 xl:flex-1">
-                  <TelemetryMapCard />
-                </div>
-              </aside>
-            </>
-          ) : (
-            // key remounts the view on every tab change so .view-in replays.
-            <main key={activeTab} className="view-in min-w-0 xl:col-span-2 xl:min-h-0">
-              {activeTab === 'analytics' && <AnalyticsView />}
-              {activeTab === 'stock-overview' && <StockOverviewView />}
-              {activeTab === 'sensors' && <SensorsView />}
-              {activeTab === 'decisions' && <DecisionsView onOpenQueue={openQueue} />}
-              {activeTab === 'history' && <HistoryView />}
+        {role === 'staff' ? (
+          // Staff: read-only. What to pull next, plus the freshness and sensor evidence behind it.
+          <div className="grid flex-1 grid-cols-1 gap-3 p-3 xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_340px]">
+            <main className="view-in flex min-w-0 flex-col gap-3 xl:min-h-0">
+              <div className="flex shrink-0 sm:h-[420px] xl:h-[46%]">
+                <PullListCard />
+              </div>
+              <div className="sm:h-[560px] xl:h-auto xl:min-h-0 xl:flex-1">
+                <ShelfLifeCard />
+              </div>
             </main>
-          )}
-        </div>
+            <aside className="view-in flex min-w-0 flex-col gap-3 xl:min-h-0">
+              <div className="h-[320px] xl:h-auto xl:min-h-0 xl:flex-1">
+                <TelemetryMapCard />
+              </div>
+            </aside>
+          </div>
+        ) : (
+          <div className="grid flex-1 grid-cols-1 gap-3 p-3 xl:min-h-0 xl:grid-cols-[250px_minmax(0,1fr)_340px]">
+            <Sidebar onSelectTab={setActiveTab} onOpenQueue={openQueue} />
+
+            {activeTab === 'overview' ? (
+              <>
+                {/* Hero: what needs a decision now. The shelf-life chart below is the evidence for it. */}
+                <main className="view-in flex min-w-0 flex-col gap-3 xl:min-h-0">
+                  <div className="flex shrink-0 sm:h-[420px] xl:h-[46%]">
+                    <QueueCard />
+                  </div>
+                  <div className="sm:h-[560px] xl:h-auto xl:min-h-0 xl:flex-1">
+                    <ShelfLifeCard />
+                  </div>
+                </main>
+
+                <aside className="view-in flex min-w-0 flex-col gap-3 xl:min-h-0">
+                  <ManagerDecisionsCard onOpenQueue={openQueue} />
+                  <div className="h-[320px] xl:h-auto xl:min-h-0 xl:flex-1">
+                    <TelemetryMapCard />
+                  </div>
+                </aside>
+              </>
+            ) : (
+              // key remounts the view on every tab change so .view-in replays.
+              <main key={activeTab} className="view-in min-w-0 xl:col-span-2 xl:min-h-0">
+                {activeTab === 'analytics' && <AnalyticsView />}
+                {activeTab === 'stock-overview' && <StockOverviewView />}
+                {activeTab === 'sensors' && <SensorsView />}
+                {activeTab === 'decisions' && <DecisionsView onOpenQueue={openQueue} />}
+                {activeTab === 'history' && <HistoryView />}
+              </main>
+            )}
+          </div>
+        )}
         {queueOpen && <DispatchQueueModal onClose={closeQueue} />}
         {settingsOpen && (
           <SettingsModal
