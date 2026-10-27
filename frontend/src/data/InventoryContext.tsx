@@ -85,7 +85,7 @@ type InventoryContextValue = {
 const InventoryContext = createContext<InventoryContextValue | null>(null)
 
 const hoursUntil = (iso: string, now: number) => Math.round((new Date(iso).getTime() - now) / HOUR)
-const timeAgo = (iso: string) => {
+export const timeAgo = (iso: string) => {
   const s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000))
   return s < 60 ? `${s}s ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : `${Math.round(s / 3600)} h ago`
 }
