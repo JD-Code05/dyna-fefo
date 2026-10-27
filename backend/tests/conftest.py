@@ -21,6 +21,7 @@ def iso(dt: datetime) -> str:
 
 
 NOW_ISO = iso(NOW)
+STAFF = {"X-Demo-User": "demo-staff"}
 
 _engine = create_engine(get_settings().test_database_url)
 
