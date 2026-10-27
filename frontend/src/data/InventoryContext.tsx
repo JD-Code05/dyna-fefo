@@ -98,9 +98,10 @@ function recText(
 ): string {
   // A pending recommendation wins: it is what the supervisor has to act on next.
   if (!r && order) return `${order.type === 'SALVAGE' ? 'Salvage' : 'Dispatch'} ordered · waiting for staff`
+  // A final state beats an old flag. Who closed it (staff, or the supervisor by hand) is in Change history.
+  if (!r && status === 'dispatched') return 'Dispatched · out of storage'
+  if (!r && status === 'salvaged') return 'Salvaged · removed from sale'
   if (!r && flagged) return `Flagged by staff · ${flagged.flag_reason === 'spoiled' ? 'looks spoiled' : 'not found'}`
-  if (!r && status === 'dispatched') return 'Dispatched · confirmed by staff'
-  if (!r && status === 'salvaged') return 'Salvaged · confirmed by staff'
   if (!r) return 'No action needed · within shelf life'
   const pct = Math.round(Number(r.rationale.rul_ratio ?? 0) * 100)
   return r.type === 'SALVAGE'
