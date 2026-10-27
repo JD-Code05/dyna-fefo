@@ -16,7 +16,9 @@ export default function App() {
     return (
       <main className="grid min-h-screen place-items-center bg-night p-6 font-sans text-fg">
         <section className="w-full max-w-sm rounded-[18px] border border-line bg-surface p-8 text-center shadow-[0_30px_90px_rgb(0_0_0/0.35)]">
-          <Logo className="mx-auto h-14 w-auto text-fg" />
+          <span className="mx-auto grid size-12 place-items-center rounded-xl border border-fg/80">
+            <Logo className="h-8 w-auto text-fg" />
+          </span>
           <p className="mt-5 text-2xl font-bold">You’re logged out</p>
           <p className="mt-2 text-xs leading-relaxed text-muted">
             Your FreshOps dashboard session has ended on this device. Choose a dashboard to continue.

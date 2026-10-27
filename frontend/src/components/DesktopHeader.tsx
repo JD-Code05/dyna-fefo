@@ -95,7 +95,9 @@ export default function DesktopHeader({
     <header className="shrink-0 border-b border-line bg-surface">
       <div className="flex h-14 items-center gap-5 px-4">
         <div className="flex shrink-0 items-center gap-3 sm:w-[218px]">
-          <Logo className="h-9 w-auto shrink-0 text-fg" />
+          <span className="grid size-9 shrink-0 place-items-center rounded-lg border border-fg/80">
+            <Logo className="h-6 w-auto text-fg" />
+          </span>
           <span>
             <span className="block text-base font-extrabold leading-none tracking-[-0.02em] text-fg">
               FreshOps
