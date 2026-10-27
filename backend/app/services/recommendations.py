@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from app.core.errors import ApiError
 from app.core.products import ProductConfig
@@ -23,24 +23,27 @@ from app.services.audit import record, snapshot
 AUDIT_FIELDS = ("id", "batch_id", "type", "status", "decision_note")
 
 
+Handler = aliased(User)
+
+
 def rec_query():
-    """Recommendation + batch code + decider name, live batches only."""
+    """Recommendation + batch code + decider and handler names, live batches only."""
     return (
-        select(Recommendation, Batch.code, User.username)
+        select(Recommendation, Batch.code, User.username, Handler.username)
         .join(Batch, Batch.id == Recommendation.batch_id)
         .outerjoin(User, User.id == Recommendation.decided_by)
+        .outerjoin(Handler, Handler.id == Recommendation.handled_by)
         .where(Batch.deleted_at.is_(None))
     )
 
 
-def to_out(rec: Recommendation, batch_code: str, decider: str | None) -> RecommendationOut:
+def to_out(rec: Recommendation, batch_code: str, decider: str | None, handler: str | None) -> RecommendationOut:
+    fields = ("id", "batch_id", "type", "status", "rationale", "created_at", "decided_at", "decision_note")
     return RecommendationOut(
-        **{
-            f: getattr(rec, f)
-            for f in ("id", "batch_id", "type", "status", "rationale", "created_at", "decided_at", "decision_note")
-        },
+        **{f: getattr(rec, f) for f in (*fields, "handled_at", "flag_reason")},
         batch_code=batch_code,
         decided_by=decider,
+        handled_by=handler,
     )
 
 

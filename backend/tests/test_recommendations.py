@@ -64,3 +64,8 @@ def test_decided_recommendation_not_reraised(client, db, products, aged_batch_wi
     recompute_all(db, products, AGED_NOW)
     assert db.query(Recommendation).filter_by(batch_id=batch_id, type="PRIORITY_DISPATCH").count() == 1
     assert db.query(Recommendation).filter_by(batch_id=batch_id, status="pending").count() == 0
+
+
+def test_rec_out_has_handled_fields(client, aged_batch_with_rec):
+    item = client.get("/api/v1/recommendations").json()["items"][0]
+    assert item["handled_by"] is None and item["handled_at"] is None and item["flag_reason"] is None
