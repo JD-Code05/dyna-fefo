@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { api, type Schemas } from '../api/client'
 import { useInventory } from '../data/InventoryContext'
+import Logo from './Logo'
 
 const sections = [
   { id: 'overview', label: 'Overview', icon: ChartNoAxesCombined },
@@ -94,9 +95,7 @@ export default function DesktopHeader({
     <header className="shrink-0 border-b border-line bg-surface">
       <div className="flex h-14 items-center gap-5 px-4">
         <div className="flex shrink-0 items-center gap-3 sm:w-[218px]">
-          <span className="grid size-9 place-items-center rounded-lg bg-fg text-night">
-            <Snowflake className="size-[18px]" strokeWidth={2.3} />
-          </span>
+          <Logo className="h-9 w-auto shrink-0 text-fg" />
           <span>
             <span className="block text-base font-extrabold leading-none tracking-[-0.02em] text-fg">
               FreshOps
