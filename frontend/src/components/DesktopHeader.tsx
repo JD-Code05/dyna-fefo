@@ -48,10 +48,12 @@ export default function DesktopHeader({
   const { sensors, error } = useInventory()
   const online = sensors.filter((sensor) => sensor.status !== 'No data').length
   const [accountOpen, setAccountOpen] = useState(false)
-  const [me, setMe] = useState<Schemas['MeOut'] | null>(null)
+  const [apiMe, setMe] = useState<Schemas['MeOut'] | null>(null)
   useEffect(() => {
     api<Schemas['MeOut']>('/me').then(setMe).catch(() => setMe(null))
   }, [role])
+  // Until /me answers (or while the backend is offline) show the role picked at login, never "signed out".
+  const me = apiMe ?? { username: `demo-${role}`, role }
   const accountRef = useRef<HTMLDivElement>(null)
   const navRef = useRef<HTMLElement>(null)
   // One underline that slides to the active tab; null until measured so it mounts in place instead of sliding in.
@@ -130,12 +132,12 @@ export default function DesktopHeader({
               className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-white/[0.04]"
             >
               <span className="grid size-7 place-items-center rounded-full bg-pill text-xs font-bold text-fg">
-                {(me?.username ?? '?').slice(0, 2).toUpperCase()}
+                {me.username.slice(0, 2).toUpperCase()}
               </span>
               <span className="hidden sm:block">
-                <span className="block text-xs font-semibold leading-none text-fg">{me?.username ?? 'Not signed in'}</span>
+                <span className="block text-xs font-semibold leading-none text-fg">{me.username}</span>
                 <span className="mt-1 block text-xs text-muted">
-                  {me?.role ?? '—'}
+                  {me.role}
                 </span>
               </span>
               <ChevronDown className={`size-3.5 text-muted transition-transform ${accountOpen ? 'rotate-180' : ''}`} />
