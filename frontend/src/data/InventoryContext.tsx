@@ -53,13 +53,19 @@ export type StockRecord = {
   activity: { state: StockState; label: string; detail: string; updated: string }
 }
 
-export type StockInput = { code: string; zone: string; units: number; detail?: string; printedExpiration: string }
+/** An approved recommendation waiting for floor staff, with the batch it is about. */
+export type StockOrder = { rec: Recommendation; stock: StockRecord }
+export type TaskReason = 'not_found' | 'spoiled'
+
+export type StockInput ={ code: string; zone: string; units: number; detail?: string; printedExpiration: string }
 export type StockUpdate = Pick<StockRecord, 'identifier' | 'zone' | 'detail' | 'units'>
 
 type InventoryContextValue = {
   sensors: SensorRecord[]
   stocks: StockRecord[]
   recommendations: Recommendation[]
+  /** Open orders for floor staff, lowest remaining life first. */
+  orders: StockOrder[]
   /** The last hour of readings per zone, ending at the zone's latest reading. */
   histories: ZoneHistory[]
   locations: string[]
@@ -73,20 +79,29 @@ type InventoryContextValue = {
   deleteStock: (key: string) => Promise<void>
   addStock: (input: StockInput) => Promise<void>
   decide: (recId: number, decision: 'approve' | 'reject', note?: string) => Promise<void>
+  completeTask: (recId: number, result: 'done' | 'flagged', reason?: TaskReason) => Promise<void>
 }
 
 const InventoryContext = createContext<InventoryContextValue | null>(null)
 
 const hoursUntil = (iso: string, now: number) => Math.round((new Date(iso).getTime() - now) / HOUR)
-const timeAgo = (iso: string) => {
+export const timeAgo = (iso: string) => {
   const s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000))
   return s < 60 ? `${s}s ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : `${Math.round(s / 3600)} h ago`
 }
 
-function recText(r: Recommendation | null, approved: Recommendation | null, status: Batch['status']): string {
-  if (!r && approved?.type === 'SALVAGE') return status === 'salvaged' ? 'Salvaged · approved by supervisor' : 'Salvage approved · mark batch as salvaged'
-  // Dispatch approvals made before the backend set the status on approval stay active.
-  if (!r && approved) return status === 'dispatched' ? 'Dispatched · approved by supervisor' : 'Dispatch approved · mark batch as dispatched'
+function recText(
+  r: Recommendation | null,
+  order: Recommendation | null,
+  flagged: Recommendation | null,
+  status: Batch['status'],
+): string {
+  // A pending recommendation wins: it is what the supervisor has to act on next.
+  if (!r && order) return `${order.type === 'SALVAGE' ? 'Salvage' : 'Dispatch'} ordered · waiting for staff`
+  // A final state beats an old flag. Who closed it (staff, or the supervisor by hand) is in Change history.
+  if (!r && status === 'dispatched') return 'Dispatched · out of storage'
+  if (!r && status === 'salvaged') return 'Salvaged · removed from sale'
+  if (!r && flagged) return `Flagged by staff · ${flagged.flag_reason === 'spoiled' ? 'looks spoiled' : 'not found'}`
   if (!r) return 'No action needed · within shelf life'
   const pct = Math.round(Number(r.rationale.rul_ratio ?? 0) * 100)
   return r.type === 'SALVAGE'
@@ -96,12 +111,18 @@ function recText(r: Recommendation | null, approved: Recommendation | null, stat
 
 const activityFor = (b: Batch): StockRecord['activity'] =>
   b.status === 'dispatched'
-    ? { state: 'dispatched', label: 'Dispatched', detail: 'Marked dispatched by supervisor', updated: timeAgo(b.updated_at) }
+    ? { state: 'dispatched', label: 'Dispatched', detail: 'Left storage', updated: timeAgo(b.updated_at) }
     : b.status === 'salvaged'
       ? { state: 'hold', label: 'Salvaged', detail: 'Removed from sale', updated: timeAgo(b.updated_at) }
       : { state: 'stored', label: 'In storage', detail: `Monitored in ${b.zone_id}`, updated: timeAgo(b.updated_at) }
 
-function toStock(b: Batch, series: number[], rec: Recommendation | null, approved: Recommendation | null): StockRecord {
+function toStock(
+  b: Batch,
+  series: number[],
+  rec: Recommendation | null,
+  order: Recommendation | null,
+  flagged: Recommendation | null,
+): StockRecord {
   // Shelf-life clock: the zone's simulated time when SIM_SPEEDUP runs ahead of the wall clock.
   const now = b.predicted_expiry && b.rul_h != null ? new Date(b.predicted_expiry).getTime() - b.rul_h * HOUR : Date.now()
   const peak = series.length ? Math.max(...series) : 0
@@ -122,7 +143,7 @@ function toStock(b: Batch, series: number[], rec: Recommendation | null, approve
     dynamicHours: b.rul_h == null ? Math.max(0, hoursUntil(b.printed_expiry, now)) : Math.round(b.rul_h),
     printedExpiry: b.printed_expiry,
     predictedExpiry: b.predicted_expiry,
-    rec: recText(rec, approved, b.status),
+    rec: recText(rec, order, flagged, b.status),
     action: rec?.type === 'SALVAGE' ? 'audit' : rec ? 'dispatch' : 'review',
     recommendation: rec,
     category: b.product_name,
@@ -150,6 +171,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   const [sensors, setSensors] = useState<SensorRecord[]>([])
   const [stocks, setStocks] = useState<StockRecord[]>([])
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
+  const [orders, setOrders] = useState<StockOrder[]>([])
   const [histories, setHistories] = useState<ZoneHistory[]>([])
   const [locations, setLocations] = useState<string[]>([])
   const [categories, setCategories] = useState<string[]>([])
@@ -157,12 +179,13 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      const [batches, devices, zones, recs, approvedRecs, products] = await Promise.all([
+      const [batches, devices, zones, recs, approvedRecs, flaggedRecs, products] = await Promise.all([
         api<Page<Batch>>('/batches?limit=200'),
         api<Page<Device>>('/devices?limit=200'),
         api<Page<Zone>>('/zones?limit=200'),
         api<Page<Recommendation>>('/recommendations?status=pending&limit=200'),
         api<Page<Recommendation>>('/recommendations?status=approved&limit=200'),
+        api<Page<Recommendation>>('/recommendations?status=flagged&limit=200'),
         api<Page<Schemas['ProductConfig']>>('/products'),
       ])
       const histories = await Promise.all(
@@ -181,13 +204,28 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       for (const r of recs.items) {
         if (!recFor.has(r.batch_id) || r.type === 'SALVAGE') recFor.set(r.batch_id, r)
       }
-      // Approved ones only label the batch; approve buttons still read pending recommendations.
-      const approvedFor = new Map<number, Recommendation>()
-      for (const r of approvedRecs.items) {
-        if (!approvedFor.has(r.batch_id) || r.type === 'SALVAGE') approvedFor.set(r.batch_id, r)
-      }
+      // Approved = an open order for staff (the backend keeps at most one per batch); flagged = staff couldn't do it.
+      const orderFor = new Map(approvedRecs.items.map((r) => [r.batch_id, r]))
       const zoneById = new Map(zones.items.map((z) => [z.id, z]))
-      setStocks(batches.items.map((b) => toStock(b, series.get(b.zone_id) ?? [], recFor.get(b.id) ?? null, approvedFor.get(b.id) ?? null)))
+      const nextStocks = batches.items.map((b) =>
+        toStock(
+          b,
+          series.get(b.zone_id) ?? [],
+          recFor.get(b.id) ?? null,
+          orderFor.get(b.id) ?? null,
+          flaggedRecs.items.find((r) => r.batch_id === b.id) ?? null, // newest first
+        ),
+      )
+      const stockById = new Map(nextStocks.map((s) => [s.key, s]))
+      setStocks(nextStocks)
+      setOrders(
+        approvedRecs.items
+          .flatMap((rec) => {
+            const stock = stockById.get(String(rec.batch_id))
+            return stock ? [{ rec, stock }] : []
+          })
+          .sort((a, b) => a.stock.dynamicHours - b.stock.dynamicHours),
+      )
       setSensors(devices.items.map((d) => toSensor(d, zoneById.get(d.zone_id))))
       setRecommendations(recs.items)
       setHistories(histories)
@@ -213,6 +251,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     sensors,
     stocks,
     recommendations,
+    orders,
     histories,
     locations,
     categories,
@@ -242,6 +281,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
         notes: detail || null,
       }),
     decide: (recId, decision, note) => write(`/recommendations/${recId}/decision`, 'POST', { decision, note: note ?? null }),
+    completeTask: (recId, result, reason) => write(`/recommendations/${recId}/task`, 'POST', { result, reason: reason ?? null }),
   }
 
   return <InventoryContext.Provider value={value}>{children}</InventoryContext.Provider>

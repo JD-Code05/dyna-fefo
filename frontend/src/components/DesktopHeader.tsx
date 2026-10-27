@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { api, type Schemas } from '../api/client'
 import { useInventory } from '../data/InventoryContext'
+import Logo from './Logo'
 
 const sections = [
   { id: 'overview', label: 'Overview', icon: ChartNoAxesCombined },
@@ -50,9 +51,9 @@ export default function DesktopHeader({
   const [apiMe, setMe] = useState<Schemas['MeOut'] | null>(null)
   useEffect(() => {
     api<Schemas['MeOut']>('/me').then(setMe).catch(() => setMe(null))
-  }, [])
-  // Draft: login is deferred and /me always answers demo-supervisor, so the staff view labels itself.
-  const me = role === 'staff' ? { username: 'demo-staff', role: 'staff' } : apiMe
+  }, [role])
+  // Until /me answers (or while the backend is offline) show the role picked at login, never "signed out".
+  const me = apiMe ?? { username: `demo-${role}`, role }
   const accountRef = useRef<HTMLDivElement>(null)
   const navRef = useRef<HTMLElement>(null)
   // One underline that slides to the active tab; null until measured so it mounts in place instead of sliding in.
@@ -96,8 +97,8 @@ export default function DesktopHeader({
     <header className="shrink-0 border-b border-line bg-surface">
       <div className="flex h-14 items-center gap-5 px-4">
         <div className="flex shrink-0 items-center gap-3 sm:w-[218px]">
-          <span className="grid size-9 place-items-center rounded-lg bg-fg text-night">
-            <Snowflake className="size-[18px]" strokeWidth={2.3} />
+          <span className="grid size-9 shrink-0 place-items-center rounded-lg border border-fg/80">
+            <Logo className="h-6 w-auto text-fg" />
           </span>
           <span>
             <span className="block text-base font-extrabold leading-none tracking-[-0.02em] text-fg">
@@ -131,12 +132,12 @@ export default function DesktopHeader({
               className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-white/[0.04]"
             >
               <span className="grid size-7 place-items-center rounded-full bg-pill text-xs font-bold text-fg">
-                {(me?.username ?? '?').slice(0, 2).toUpperCase()}
+                {me.username.slice(0, 2).toUpperCase()}
               </span>
               <span className="hidden sm:block">
-                <span className="block text-xs font-semibold leading-none text-fg">{me?.username ?? 'Not signed in'}</span>
+                <span className="block text-xs font-semibold leading-none text-fg">{me.username}</span>
                 <span className="mt-1 block text-xs text-muted">
-                  {me?.role ?? '—'}
+                  {me.role}
                 </span>
               </span>
               <ChevronDown className={`size-3.5 text-muted transition-transform ${accountOpen ? 'rotate-180' : ''}`} />

@@ -67,7 +67,7 @@ export default function DesktopDashboard({
         />
         {role === 'staff' ? (
           // Staff: read-only. What to pull next, plus the freshness and sensor evidence behind it.
-          <div className="grid flex-1 grid-cols-1 gap-3 p-3 xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="grid flex-1 grid-cols-1 gap-3 p-3 xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_minmax(340px,28%)]">
             <main className="view-in flex min-w-0 flex-col gap-3 xl:min-h-0">
               <div className="flex shrink-0 sm:h-[420px] xl:h-[46%]">
                 <PullListCard />

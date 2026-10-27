@@ -813,6 +813,8 @@ export const actionTone: Record<string, string> = {
   delete: 'bg-danger/10 text-danger',
   approve: 'bg-ok/10 text-ok',
   reject: 'bg-warn/10 text-warn',
+  complete: 'bg-ok/10 text-ok',
+  flag: 'bg-warn/10 text-warn',
 }
 const changeSummary = (row: AuditRow) => {
   const rec = (row.after ?? row.before ?? {}) as Record<string, unknown>
@@ -825,6 +827,10 @@ const changeSummary = (row: AuditRow) => {
     case 'approve':
     case 'reject':
       return `${row.action === 'approve' ? 'Approved' : 'Rejected'} ${String(rec.type ?? '').replace('_', ' ').toLowerCase()} for batch #${rec.batch_id}${rec.decision_note ? ` · “${rec.decision_note}”` : ''}`
+    case 'complete':
+      return `${rec.type === 'SALVAGE' ? 'Salvaged' : 'Shipped'} batch #${rec.batch_id}`
+    case 'flag':
+      return `Flagged batch #${rec.batch_id} · ${rec.flag_reason === 'spoiled' ? 'looks spoiled' : 'not found'}`
     default: {
       const fields = Object.keys({ ...(row.before ?? {}), ...(row.after ?? {}) })
       return fields.map((k) => `${k}: ${String(row.before?.[k] ?? '—')} → ${String(row.after?.[k] ?? '—')}`).join(' · ')

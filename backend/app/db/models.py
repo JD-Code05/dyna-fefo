@@ -37,8 +37,10 @@ class RecType(StrEnum):
 
 class RecStatus(StrEnum):
     pending = "pending"
-    approved = "approved"
+    approved = "approved"  # an open order for floor staff
     rejected = "rejected"
+    done = "done"
+    flagged = "flagged"
 
 
 class AuditAction(StrEnum):
@@ -47,6 +49,8 @@ class AuditAction(StrEnum):
     delete = "delete"
     approve = "approve"
     reject = "reject"
+    complete = "complete"
+    flag = "flag"
 
 
 class AuditEntity(StrEnum):
@@ -155,6 +159,9 @@ class Recommendation(Base):
     decided_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     decided_at: Mapped[datetime | None] = _ts()
     decision_note: Mapped[str | None] = mapped_column(Text)
+    handled_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    handled_at: Mapped[datetime | None] = _ts()
+    flag_reason: Mapped[str | None] = mapped_column(String)
 
 
 class AuditLog(Base):

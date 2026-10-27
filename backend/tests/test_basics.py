@@ -1,3 +1,6 @@
+from conftest import STAFF
+
+
 def test_health_ok(client):
     r = client.get("/api/v1/health")
     assert r.status_code == 200
@@ -97,3 +100,15 @@ def test_openapi_422_uses_error_schema(client):
     ref = spec["paths"]["/api/v1/batches"]["post"]["responses"]["422"]["content"]["application/json"]["schema"]["$ref"]
     assert ref.endswith("/ErrorOut")
     assert "HTTPValidationError" not in str(spec["paths"])
+
+
+def test_me_as_staff(client, seeded):
+    assert client.get("/api/v1/me", headers=STAFF).json()["role"] == "staff"
+    assert client.get("/api/v1/me", headers={"X-Demo-User": "nobody"}).json()["username"] == "demo-supervisor"
+
+
+def test_staff_can_read_but_not_write(client, seeded):
+    for path in ("/batches", "/zones", "/devices", "/recommendations", "/audit-log", "/products"):
+        assert client.get(f"/api/v1{path}", headers=STAFF).status_code == 200
+    r = client.delete("/api/v1/batches/1", headers=STAFF)
+    assert r.status_code == 403 and r.json()["error"]["code"] == "forbidden"

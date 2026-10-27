@@ -1,6 +1,6 @@
 from collections.abc import Callable, Iterator
 
-from fastapi import Depends
+from fastapi import Depends, Header
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -14,9 +14,11 @@ def get_db() -> Iterator[Session]:
         yield session
 
 
-def get_current_user(db: Session = Depends(get_db)) -> User:
-    # AUTH_MODE=demo is the only mode: every request is the seeded supervisor.
-    user = db.scalar(select(User).where(User.username == "demo-supervisor"))
+def get_current_user(db: Session = Depends(get_db), x_demo_user: str | None = Header(None)) -> User:
+    # AUTH_MODE=demo is the only mode: X-Demo-User: demo-staff picks the seeded staff user, anything else the
+    # supervisor. Anyone can send the header; real login later replaces only this function.
+    username = "demo-staff" if x_demo_user == "demo-staff" else "demo-supervisor"
+    user = db.scalar(select(User).where(User.username == username))
     if user is None:
         raise ApiError(500, "demo_user_missing", "Demo user is not seeded; run python -m app.db.seed")
     return user

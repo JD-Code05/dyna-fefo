@@ -26,6 +26,8 @@ BATCHES = [
 def seed(db: Session) -> None:
     if not db.scalar(select(User).where(User.username == "demo-supervisor")):
         db.add(User(username="demo-supervisor", password_hash=None, role=Role.supervisor.value))
+    if not db.scalar(select(User).where(User.username == "demo-staff")):
+        db.add(User(username="demo-staff", password_hash=None, role=Role.staff.value))
     for cfg in load_products(get_settings().products_path).values():
         db.merge(Product(**cfg.model_dump()))
     for id_, name in ZONES:
