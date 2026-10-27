@@ -47,12 +47,10 @@ export default function DesktopHeader({
   const { sensors, error } = useInventory()
   const online = sensors.filter((sensor) => sensor.status !== 'No data').length
   const [accountOpen, setAccountOpen] = useState(false)
-  const [apiMe, setMe] = useState<Schemas['MeOut'] | null>(null)
+  const [me, setMe] = useState<Schemas['MeOut'] | null>(null)
   useEffect(() => {
     api<Schemas['MeOut']>('/me').then(setMe).catch(() => setMe(null))
-  }, [])
-  // Draft: login is deferred and /me always answers demo-supervisor, so the staff view labels itself.
-  const me = role === 'staff' ? { username: 'demo-staff', role: 'staff' } : apiMe
+  }, [role])
   const accountRef = useRef<HTMLDivElement>(null)
   const navRef = useRef<HTMLElement>(null)
   // One underline that slides to the active tab; null until measured so it mounts in place instead of sliding in.

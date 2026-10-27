@@ -5,11 +5,17 @@ export type ApiError = Schemas['ErrorOut']['error']
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1'
 
+// Demo auth: the staff dashboard sends X-Demo-User so the backend runs its requests as demo-staff.
+let demoUser: string | null = null
+export const setDemoUser = (username: string | null) => {
+  demoUser = username
+}
+
 // Throws the backend's {error: {code, message, details}} body so screens can show `message`.
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
+    headers: { 'Content-Type': 'application/json', ...(demoUser ? { 'X-Demo-User': demoUser } : {}), ...init?.headers },
   })
   if (res.status === 204) return undefined as T
   const body = await res.json().catch(() => null)

@@ -1,10 +1,15 @@
 import { useState } from 'react'
 import { LogIn, Snowflake } from 'lucide-react'
 import DesktopDashboard, { type Role } from './DesktopDashboard'
+import { setDemoUser } from './api/client'
 
 export default function App() {
-  // null = logged out. Draft: the choice lives only in this page; the backend still runs every request as demo-supervisor.
-  const [role, setRole] = useState<Role | null>('supervisor')
+  // null = logged out. The choice lives only in this page; the staff dashboard tells the backend via X-Demo-User.
+  const [role, setRoleState] = useState<Role | null>('supervisor')
+  const setRole = (next: Role | null) => {
+    setDemoUser(next === 'staff' ? 'demo-staff' : null)
+    setRoleState(next)
+  }
 
   if (!role) {
     return (
