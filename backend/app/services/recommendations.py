@@ -49,11 +49,20 @@ def to_out(rec: Recommendation, batch_code: str, decider: str | None, handler: s
 
 
 def refresh_for_batch(db: Session, batch: Batch, state: BatchState, cfg: ProductConfig) -> Recommendation | None:
-    """Create or update the batch's pending recommendation. Flushes; the caller commits."""
+    """Create or update the batch's pending recommendation. Flushes; the caller commits.
+
+    While the batch has an open order (an approved recommendation staff have not confirmed or flagged), nothing
+    is raised, so a batch never has two open orders. A flagged order is closed, so escalation can follow it.
+    """
     th = Thresholds(cfg.salvage_ratio, cfg.dispatch_ratio)
     kind = decide(state.rul_h, state.rul_ratio, th)
     if kind is None:
         return None  # existing pending recommendations are left for the supervisor
+    open_order = select(Recommendation.id).where(
+        Recommendation.batch_id == batch.id, Recommendation.status == RecStatus.approved.value
+    )
+    if db.scalar(open_order.limit(1)) is not None:
+        return None
     value = th.salvage_ratio if kind == "SALVAGE" else th.dispatch_ratio
     rationale = {
         "rul_h": state.rul_h,

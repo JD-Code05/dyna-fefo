@@ -150,3 +150,19 @@ def test_supervisor_cannot_call_task_403(client, aged_batch_with_rec):
     approve(client, rec_id)
     r = client.post(f"/api/v1/recommendations/{rec_id}/task", json={"result": "done"})
     assert r.status_code == 403 and r.json()["error"]["code"] == "forbidden"
+
+
+def test_no_new_rec_while_order_open(client, db, products, aged_batch_with_rec):
+    rec_id, batch_id = aged_batch_with_rec
+    approve(client, rec_id)
+    recompute_all(db, products, AGED_NOW + timedelta(hours=10))  # now in salvage range
+    assert db.query(Recommendation).filter_by(batch_id=batch_id).count() == 1
+
+
+def test_flag_lets_salvage_be_raised(client, db, products, aged_batch_with_rec):
+    rec_id, batch_id = aged_batch_with_rec
+    approve(client, rec_id)
+    task(client, rec_id, result="flagged", reason="spoiled")
+    recompute_all(db, products, AGED_NOW + timedelta(hours=10))
+    pending = db.query(Recommendation).filter_by(batch_id=batch_id, status="pending").one()
+    assert pending.type == "SALVAGE"
