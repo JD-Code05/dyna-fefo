@@ -1,47 +1,39 @@
 import { useState } from 'react'
-import { LogIn } from 'lucide-react'
-import Logo from './components/Logo'
 import DesktopDashboard, { type Role } from './DesktopDashboard'
+import Landing from './Landing'
+import SignIn from './SignIn'
 import { setDemoUser } from './api/client'
 
+type Screen = { name: 'home' } | { name: 'signin' | 'dashboard'; role: Role }
+
+// Remembers the open dashboard for this tab only, so a refresh stays signed in but a new visit starts at home.
+const KEY = 'freshops-role'
+function savedScreen(): Screen {
+  try {
+    const role = window.sessionStorage.getItem(KEY)
+    if (role === 'supervisor' || role === 'staff') {
+      setDemoUser(role === 'staff' ? 'demo-staff' : null)
+      return { name: 'dashboard', role }
+    }
+  } catch {}
+  return { name: 'home' }
+}
+
 export default function App() {
-  // null = logged out. The choice lives only in this page; the staff dashboard tells the backend via X-Demo-User.
-  const [role, setRoleState] = useState<Role | null>('supervisor')
-  const setRole = (next: Role | null) => {
-    setDemoUser(next === 'staff' ? 'demo-staff' : null)
-    setRoleState(next)
+  const [screen, setScreenState] = useState<Screen>(savedScreen)
+  const go = (next: Screen) => {
+    // The staff dashboard tells the backend who it is via X-Demo-User.
+    setDemoUser(next.name === 'dashboard' && next.role === 'staff' ? 'demo-staff' : null)
+    try {
+      if (next.name === 'dashboard') window.sessionStorage.setItem(KEY, next.role)
+      else window.sessionStorage.removeItem(KEY)
+    } catch {}
+    window.scrollTo(0, 0)
+    setScreenState(next)
   }
 
-  if (!role) {
-    return (
-      <main className="grid min-h-screen place-items-center bg-night p-6 font-sans text-fg">
-        <section className="w-full max-w-sm rounded-[18px] border border-line bg-surface p-8 text-center shadow-[0_30px_90px_rgb(0_0_0/0.35)]">
-          <span className="mx-auto grid size-12 place-items-center rounded-xl border border-fg/80">
-            <Logo className="h-8 w-auto text-fg" />
-          </span>
-          <p className="mt-5 text-2xl font-bold">You’re logged out</p>
-          <p className="mt-2 text-xs leading-relaxed text-muted">
-            Your FreshOps dashboard session has ended on this device. Choose a dashboard to continue.
-          </p>
-          <button
-            type="button"
-            onClick={() => setRole('supervisor')}
-            className="mt-6 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-accent text-xs font-bold text-night hover:brightness-105"
-          >
-            <LogIn className="size-4" />
-            Supervisor dashboard
-          </button>
-          <button
-            type="button"
-            onClick={() => setRole('staff')}
-            className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-line text-xs font-bold text-fg hover:bg-white/[0.04]"
-          >
-            <LogIn className="size-4" />
-            Staff dashboard
-          </button>
-        </section>
-      </main>
-    )
-  }
-  return <DesktopDashboard role={role} onLogout={() => setRole(null)} />
+  if (screen.name === 'home') return <Landing onSignIn={(role) => go({ name: 'signin', role })} />
+  if (screen.name === 'signin')
+    return <SignIn initialRole={screen.role} onSignIn={(role) => go({ name: 'dashboard', role })} onHome={() => go({ name: 'home' })} />
+  return <DesktopDashboard role={screen.role} onLogout={() => go({ name: 'signin', role: screen.role })} />
 }
