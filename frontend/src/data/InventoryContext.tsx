@@ -71,6 +71,8 @@ type InventoryContextValue = {
   locations: string[]
   categories: string[]
   error: string | null
+  /** True once the first fetch has finished, whether it worked or failed. */
+  loaded: boolean
   refresh: () => Promise<void>
   updateSensor: (key: string, updates: Pick<SensorRecord, 'name' | 'location'>) => Promise<void>
   addSensor: (id: string, name: string, location: string) => Promise<string>
@@ -176,6 +178,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   const [locations, setLocations] = useState<string[]>([])
   const [categories, setCategories] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [loaded, setLoaded] = useState(false)
 
   const refresh = useCallback(async () => {
     try {
@@ -235,6 +238,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       setError((e as { message?: string }).message ?? 'Cannot reach the backend at localhost:8000')
     }
+    setLoaded(true)
   }, [])
 
   useEffect(() => {
@@ -256,6 +260,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     locations,
     categories,
     error,
+    loaded,
     refresh,
     updateSensor: (key, u) => write(`/devices/${key}`, 'PATCH', { name: u.name, zone_id: u.location }),
     addSensor: async (id, name, location) => {

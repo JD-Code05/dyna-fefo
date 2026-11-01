@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Basket } from '@lucasmarkes/hairline/react'
 import { Clock3, PackageCheck } from 'lucide-react'
 import { timeAgo, useInventory, type StockOrder, type TaskReason } from '../data/InventoryContext'
 import { card, CardTitle } from './ui'
@@ -33,6 +34,7 @@ export default function PullListCard() {
         {orders.length === 0 && (
           <li className="grid h-full place-items-center px-4 py-10 text-center">
             <span>
+              <Basket className="pull-empty mx-auto mb-1 w-[168px]" intensity={0.6} label="An empty basket: nothing to pull right now" />
               <span className="block text-xs font-semibold text-fg">Nothing to pull</span>
               <span className="mt-1 block text-xs text-muted">Orders appear here once the supervisor approves a dispatch or salvage.</span>
             </span>

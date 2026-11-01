@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
 import Sidebar from './components/Sidebar'
 import ShelfLifeCard from './components/ShelfLifeCard'
@@ -16,7 +16,8 @@ import {
   StockOverviewView,
 } from './components/WorkspaceViews'
 import PullListCard from './components/PullListCard'
-import { InventoryProvider } from './data/InventoryContext'
+import TruckLoader from './components/TruckLoader'
+import { InventoryProvider, useInventory } from './data/InventoryContext'
 
 export type Role = 'supervisor' | 'staff'
 
@@ -51,6 +52,7 @@ export default function DesktopDashboard({
 
   return (
     <InventoryProvider>
+      <LoadGate>
       {/* Fills the window at real size so browser zoom works; below xl the page stacks and scrolls. */}
       <div
         className="dashboard-scrollbars flex min-h-dvh flex-col bg-night font-sans text-fg xl:h-dvh xl:overflow-hidden"
@@ -126,6 +128,18 @@ export default function DesktopDashboard({
           />
         )}
       </div>
+      </LoadGate>
     </InventoryProvider>
   )
+}
+
+// Truck loader until the first data arrives; held at least 1.2 s so a fast local load doesn't flicker.
+function LoadGate({ children }: { children: ReactNode }) {
+  const { loaded } = useInventory()
+  const [minDone, setMinDone] = useState(false)
+  useEffect(() => {
+    const id = setTimeout(() => setMinDone(true), 1_200)
+    return () => clearTimeout(id)
+  }, [])
+  return loaded && minDone ? children : <TruckLoader />
 }

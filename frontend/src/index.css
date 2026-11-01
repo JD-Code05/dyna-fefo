@@ -175,6 +175,67 @@ body {
   }
 }
 
+/* Change history: truck / bin line drawing on staff "done" rows (DoneAnimation.tsx). 28 px tall keeps the 44 px row. */
+.done-anim { display: block; flex: none; width: 93px; height: 28px; }
+.done-anim * { vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.done-anim .ln { fill: none; stroke: var(--color-fg); stroke-width: 1.2px; }
+.done-anim .ln.fill { fill: var(--color-surface); }
+.done-anim .soft { fill: none; stroke: var(--color-muted); stroke-width: 1px; }
+.done-anim .faint { fill: none; stroke: var(--color-line); stroke-width: 1.1px; }
+.done-anim .crate rect { fill: var(--color-surface); stroke: var(--color-accent); stroke-width: 1.2px; }
+.done-anim .crate path { fill: none; stroke: var(--color-accent); stroke-width: 1px; }
+.done-anim .crate { animation: done-lift 0.8s cubic-bezier(0.65, 0, 0.35, 1) both; animation-delay: var(--at); }
+.done-anim.ship .ramp { animation: done-fade 0.3s ease-out 2.5s both; }
+.done-anim.ship .door { stroke-dasharray: 30; animation: done-shut 0.35s ease-in 2.6s both; }
+.done-anim.ship .rig { animation: done-drive 2.6s cubic-bezier(0.55, 0, 0.75, 0.2) 3.1s both; }
+.done-anim.ship .wheel { transform-box: fill-box; transform-origin: center; animation: done-spin 0.45s linear 3.1s 6; }
+.done-anim.ship .dashes { animation: done-road 0.45s linear 3.1s 6; }
+.done-anim.salv .lid { transform-origin: 151px 27px; animation: done-lid 0.35s cubic-bezier(0.5, 0, 0.75, 0) 2.5s both; }
+.done-anim.salv .bin { animation: done-red 0.3s ease 2.85s both; }
+@keyframes done-lift {
+  0% { transform: translate(0, 0); }
+  22% { transform: translate(0, calc(var(--hy) * 1px)); }
+  78% { transform: translate(calc(var(--dx) * 1px), calc(var(--hy) * 1px)); }
+  100% { transform: translate(calc(var(--dx) * 1px), calc(var(--dy) * 1px)); }
+}
+@keyframes done-lid { from { transform: rotate(-80deg); } to { transform: rotate(0); } }
+@keyframes done-red { to { stroke: var(--color-danger); } }
+@keyframes done-fade { to { opacity: 0; } }
+@keyframes done-shut { from { stroke-dashoffset: 30; } to { stroke-dashoffset: 0; } }
+@keyframes done-drive { to { transform: translateX(150px); } }
+@keyframes done-spin { to { transform: rotate(360deg); } }
+@keyframes done-road { to { transform: translateX(-16px); } }
+/* Dashboard first-load screen (TruckLoader.tsx): isometric line-art truck, road fading out at both ends. */
+.truck-loader { display: grid; min-height: 100dvh; place-content: center; justify-items: center; gap: 10px; padding: 16px; background: var(--color-night); }
+.truck-loader svg { width: min(340px, 85vw); height: auto; mask-image: linear-gradient(100deg, transparent 4%, #000 26%, #000 74%, transparent 96%); }
+.truck-loader p { margin: 0; font: 13px var(--font-mono); letter-spacing: 0.02em; color: var(--color-muted); }
+.truck-loader svg * { vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
+.truck-loader .plate { fill: var(--color-night); stroke: var(--color-fg); stroke-width: 1.3px; }
+.truck-loader .cargo { fill: var(--color-night); stroke: var(--color-accent); stroke-width: 1.3px; }
+.truck-loader .ln { fill: none; stroke: var(--color-muted); stroke-width: 1.1px; }
+.truck-loader .ln-cargo { fill: none; stroke: var(--color-accent); stroke-width: 1.1px; }
+.truck-loader .faint { fill: none; stroke: var(--color-line); stroke-width: 1.3px; }
+.truck-loader .shadow { fill: var(--color-line); stroke: none; opacity: 0.7; }
+.truck-loader .lamp { fill: var(--color-accent); stroke: none; }
+
+/* Staff Pull list empty state: hairline Basket figure in the dashboard's colours. */
+.pull-empty { --hairline-plate: var(--color-surface); --hairline-hi: var(--color-fg); --hairline-edge: var(--color-muted); --hairline-mid: #5c5651; --hairline-lo: var(--color-line); }
+.theme-light .pull-empty { --hairline-mid: #9aa3b2; }
+
+/* Loop restart: the end picture fades out, the start picture fades in (dock and road stay put). */
+.done-anim .fx { animation: done-in 0.5s ease-out both; }
+.done-anim.leaving .fx { opacity: 0; transition: opacity 0.4s ease-in; }
+.done-anim.still .fx { animation: none; }
+@keyframes done-in { from { opacity: 0; } }
+
+/* Older rows and reduced motion: end picture (loaded truck parked with door shut / closed red bin). */
+.done-anim.still .crate, .done-anim.still .ramp, .done-anim.still .door, .done-anim.still .lid, .done-anim.still .bin { animation-duration: 1ms; animation-delay: 0s; }
+.done-anim.still .rig, .done-anim.still .wheel, .done-anim.still .dashes { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .done-anim .crate, .done-anim .ramp, .done-anim .door, .done-anim .lid, .done-anim .bin { animation-duration: 1ms; animation-delay: 0s; }
+  .done-anim .rig, .done-anim .wheel, .done-anim .dashes, .done-anim .fx { animation: none; }
+}
+
 /* Inputs drop the browser outline (outline-none); give keyboard users a visible ring back. */
 input:focus-visible,
 select:focus-visible,
