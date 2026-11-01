@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
   ArrowRight,
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { api, type Schemas } from '../api/client'
 import { useInventory, type SensorRecord, type StockRecord, type StockUpdate, type ZoneHistory } from '../data/InventoryContext'
+import DoneAnimation from './DoneAnimation'
 import ShelfLifeComparisonBar from './ShelfLifeComparisonBar'
 import TrendChart, { type TrendPoint } from './TrendChart'
 import { card, CardHint, CardTitle, ConfirmDelete, Dropdown, Segmented } from './ui'
@@ -843,11 +844,19 @@ export function HistoryView() {
   const [entity, setEntity] = useState('All')
   const [error, setError] = useState('')
   const { stocks } = useInventory() // re-fetch whenever the polled data changes
+  const newest = useRef<number | null>(null) // highest row id already shown
+  const [playAbove, setPlayAbove] = useState<number | null>(null) // rows above this arrived while watching
 
   useEffect(() => {
     const q = entity === 'All' ? '' : `&entity=${entity.toLowerCase()}`
     api<{ items: AuditRow[] }>(`/audit-log?limit=100${q}`)
-      .then((page) => { setRows(page.items); setError('') })
+      .then((page) => {
+        const before = newest.current
+        newest.current = Math.max(before ?? 0, ...page.items.map((r) => r.id))
+        setPlayAbove(before)
+        setRows(page.items)
+        setError('')
+      })
       .catch((e) => setError(errorText(e)))
   }, [entity, stocks])
 
@@ -881,7 +890,12 @@ export function HistoryView() {
               <span className={`w-fit rounded-full px-2 py-0.5 font-mono text-xs font-semibold capitalize ${actionTone[row.action] ?? 'text-muted'}`}>{row.action}</span>
               <span className="text-xs text-fg"><span className="capitalize">{row.entity}</span> <span className="font-mono text-muted">#{row.entity_id}</span></span>
               <span className="font-mono text-xs text-muted">{row.user}</span>
-              <span className="break-words text-xs text-fg/80">{changeSummary(row)}</span>
+              <span className="flex items-center gap-2.5 break-words text-xs text-fg/80">
+                {row.action === 'complete' && (
+                  <DoneAnimation salvage={(row.after as Record<string, unknown> | null)?.type === 'SALVAGE'} play={playAbove !== null && row.id > playAbove} />
+                )}
+                {changeSummary(row)}
+              </span>
             </div>
           ))}
         </div>
