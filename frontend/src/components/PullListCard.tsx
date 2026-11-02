@@ -137,7 +137,7 @@ function OrderRow({ order, position, hold, release }: {
       <div className="pull-done col-span-2 flex min-h-12 flex-wrap items-center gap-2 pl-6 sm:col-span-3">
         {finished ? (
           <>
-            <DoneAnimation salvage={salvage} play once />
+            <DoneAnimation salvage={salvage} once />
             <span role="status" className="text-xs text-muted">{salvage ? 'Salvaged' : 'Loaded, on its way'}</span>
           </>
         ) : choosing ? (

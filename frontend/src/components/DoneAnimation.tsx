@@ -13,11 +13,11 @@ const dock = (
 )
 
 /** Line drawing for a staff "done" row: truck for shipped, bin for salvaged. Loops unless `once`. */
-export default function DoneAnimation({ salvage, play, once = false }: { salvage: boolean; play: boolean; once?: boolean }) {
+export default function DoneAnimation({ salvage, once = false }: { salvage: boolean; once?: boolean }) {
   const [run, setRun] = useState(0) // a new number remounts the svg, which replays it
-  // older rows start on the parked-and-loaded picture; reduced motion never leaves it
-  const [still, setStill] = useState(() => !play || matchMedia('(prefers-reduced-motion: reduce)').matches)
-  const [waiting, setWaiting] = useState(!play) // true = 7 s pause before the next replay
+  // reduced motion stays on the parked-and-loaded picture
+  const [still, setStill] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches)
+  const [waiting, setWaiting] = useState(false) // true = 7 s pause before the next replay
   const [leaving, setLeaving] = useState(false) // end picture fading out just before the replay
   useEffect(() => {
     if (!waiting || matchMedia('(prefers-reduced-motion: reduce)').matches) return
