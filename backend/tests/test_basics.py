@@ -70,7 +70,7 @@ def test_seed_is_idempotent(db):
 
     seed(db)
     seed(db)
-    assert db.query(Batch).count() == 4
+    assert db.query(Batch).count() == 5
     assert db.query(Device).count() == 2
     assert db.query(Zone).count() == 2
 

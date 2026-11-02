@@ -47,14 +47,14 @@ def test_batches_list_sorted_by_rul(client, db, seeded, products):
 def test_recompute_twice_same_now_upserts_and_appends_history(db, seeded, products):
     recompute_all(db, products, NOW)
     recompute_all(db, products, NOW)
-    assert db.query(BatchState).count() == 4
-    assert db.query(BatchStateHistory).count() == 8
+    assert db.query(BatchState).count() == 5
+    assert db.query(BatchStateHistory).count() == 10
 
 
 def test_non_active_skipped(db, seeded, products):
     db.query(Batch).filter_by(code="CHK-003").one().status = "dispatched"
     db.commit()
-    assert len(recompute_all(db, products, NOW)) == 3
+    assert len(recompute_all(db, products, NOW)) == 4
 
 
 def test_rul_endpoint(client, db, seeded, products):
@@ -73,7 +73,7 @@ def test_unknown_product_skipped_others_computed(db, seeded, products):
     db.query(Batch).filter_by(code="CHK-004").one().product_id = "fish"
     db.commit()
     states = recompute_all(db, products, NOW)
-    assert len(states) == 3 and db.query(BatchState).count() == 3
+    assert len(states) == 4 and db.query(BatchState).count() == 4
 
 
 @pytest.mark.parametrize(("sim", "expected_age"), [(True, 100), (False, 12)])

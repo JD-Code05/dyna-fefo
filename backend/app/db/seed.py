@@ -20,6 +20,7 @@ BATCHES = [
     ("CHK-002", "chiller-a", 72, 30),
     ("CHK-003", "chiller-b", 150, 25),
     ("CHK-004", "chiller-b", 210, 20),
+    ("CHK-005", "chiller-b", 225, 15),  # under the 10% salvage line, so a fresh demo shows a SALVAGE
 ]
 
 
