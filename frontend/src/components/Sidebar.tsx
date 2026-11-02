@@ -106,7 +106,7 @@ export default function Sidebar({
               autoFocus
               name="primary"
               aria-label={adding === 'sensor' ? 'Sensor name' : 'Batch code'}
-              placeholder={adding === 'sensor' ? 'Sensor name · Chiller A Probe 03' : 'Batch code · CHK-005'}
+              placeholder={adding === 'sensor' ? 'Sensor name · Chiller A Probe 03' : 'Batch code · CHK-006'}
               className="mt-2 h-9 w-full rounded-lg border border-line bg-night px-2.5 text-xs text-fg outline-none placeholder:text-muted focus:border-accent/50"
             />
             {adding === 'stock' ? (
