@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
   ArrowRight,
@@ -844,16 +844,11 @@ export function HistoryView() {
   const [entity, setEntity] = useState('All')
   const [error, setError] = useState('')
   const { stocks } = useInventory() // re-fetch whenever the polled data changes
-  const newest = useRef<number | null>(null) // highest row id already shown
-  const [playAbove, setPlayAbove] = useState<number | null>(null) // rows above this arrived while watching
 
   useEffect(() => {
     const q = entity === 'All' ? '' : `&entity=${entity.toLowerCase()}`
     api<{ items: AuditRow[] }>(`/audit-log?limit=100${q}`)
       .then((page) => {
-        const before = newest.current
-        newest.current = Math.max(before ?? 0, ...page.items.map((r) => r.id))
-        setPlayAbove(before)
         setRows(page.items)
         setError('')
       })
@@ -892,7 +887,7 @@ export function HistoryView() {
               <span className="font-mono text-xs text-muted">{row.user}</span>
               <span className="flex items-center gap-2.5 break-words text-xs text-fg/80">
                 {row.action === 'complete' && (
-                  <DoneAnimation salvage={(row.after as Record<string, unknown> | null)?.type === 'SALVAGE'} play={playAbove !== null && row.id > playAbove} />
+                  <DoneAnimation salvage={(row.after as Record<string, unknown> | null)?.type === 'SALVAGE'} />
                 )}
                 {changeSummary(row)}
               </span>

@@ -12,11 +12,12 @@ const dock = (
   </>
 )
 
-/** Line drawing for a staff "done" row in Change history: truck for shipped, bin for salvaged. */
-export default function DoneAnimation({ salvage, play }: { salvage: boolean; play: boolean }) {
+/** Line drawing for a staff "done" row: truck for shipped, bin for salvaged. Loops unless `once`. */
+export default function DoneAnimation({ salvage, once = false }: { salvage: boolean; once?: boolean }) {
   const [run, setRun] = useState(0) // a new number remounts the svg, which replays it
-  const [still, setStill] = useState(!play) // older rows start on the parked-and-loaded picture
-  const [waiting, setWaiting] = useState(!play) // true = 7 s pause before the next replay
+  // reduced motion stays on the parked-and-loaded picture
+  const [still, setStill] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches)
+  const [waiting, setWaiting] = useState(false) // true = 7 s pause before the next replay
   const [leaving, setLeaving] = useState(false) // end picture fading out just before the replay
   useEffect(() => {
     if (!waiting || matchMedia('(prefers-reduced-motion: reduce)').matches) return
@@ -25,7 +26,7 @@ export default function DoneAnimation({ salvage, play }: { salvage: boolean; pla
     return () => { clearTimeout(out); clearTimeout(replay) }
   }, [waiting])
   // last step done (truck out of frame / bin red): pause, then replay
-  const onEnd = (e: AnimationEvent) => { if (e.animationName === (salvage ? 'done-red' : 'done-drive')) setWaiting(true) }
+  const onEnd = (e: AnimationEvent) => { if (!once && e.animationName === (salvage ? 'done-red' : 'done-drive')) setWaiting(true) }
   const cls = `done-anim ${salvage ? 'salv' : 'ship'}${still ? ' still' : ''}${leaving ? ' leaving' : ''}`
 
   if (salvage)

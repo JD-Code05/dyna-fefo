@@ -71,16 +71,11 @@ export default function DispatchQueueModal({ onClose }: { onClose: () => void })
   closeRef.current = close
   const [history, setHistory] = useState<AuditRow[]>([])
   const [historyError, setHistoryError] = useState<string | null>(null)
-  const newest = useRef<number | null>(null) // highest history row id already shown
-  const [playAbove, setPlayAbove] = useState<number | null>(null) // rows above this arrived while open
 
   // Past approvals and rejections; refetched whenever the polled data changes, so a new decision shows up.
   useEffect(() => {
     api<{ items: AuditRow[] }>('/audit-log?limit=100&entity=recommendation')
       .then((page) => {
-        const before = newest.current
-        newest.current = Math.max(before ?? 0, ...page.items.map((r) => r.id))
-        setPlayAbove(before)
         setHistory(page.items)
         setHistoryError(null)
       })
@@ -287,7 +282,7 @@ export default function DispatchQueueModal({ onClose }: { onClose: () => void })
                   </span>
                   <span className="flex min-w-0 items-center gap-3">
                     {row.action === 'complete' && (
-                      <DoneAnimation salvage={type === 'salvage'} play={playAbove !== null && row.id > playAbove} />
+                      <DoneAnimation salvage={type === 'salvage'} />
                     )}
                     <span className="min-w-0">
                       <span className="block text-sm font-semibold capitalize text-fg">

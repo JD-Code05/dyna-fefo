@@ -1,13 +1,31 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Basket } from '@lucasmarkes/hairline/react'
 import { Clock3, PackageCheck } from 'lucide-react'
 import { timeAgo, useInventory, type StockOrder, type TaskReason } from '../data/InventoryContext'
+import DoneAnimation from './DoneAnimation'
 import { card, CardTitle } from './ui'
+
+const FADE_MS = 300
 
 // Staff view: orders the supervisor approved, lowest remaining life first (dynamic FEFO).
 // Staff confirm each one in one tap, or flag it in two.
 export default function PullListCard() {
   const { orders } = useInventory()
+  const [held, setHeld] = useState<{ order: StockOrder; index: number }[]>([])
+  const hold = useCallback((order: StockOrder, index: number) => setHeld((h) => [...h, { order, index }]), [])
+  // left = the row is gone from the list, so held rows below it move up one place.
+  const release = useCallback((id: number, left: boolean) => setHeld((h) => {
+    const gone = h.find((x) => x.order.rec.id === id)
+    return h
+      .filter((x) => x !== gone)
+      .map((x) => (left && gone && x.index > gone.index ? { ...x, index: x.index - 1 } : x))
+  }), [])
+
+  // A confirmed row keeps its place until its animation ends, even though the refetch has already dropped it.
+  const rows = [...orders]
+  for (const { order, index } of [...held].sort((a, b) => a.index - b.index)) {
+    if (!rows.some((o) => o.rec.id === order.rec.id)) rows.splice(index, 0, order)
+  }
 
   return (
     <section className={`${card} flex min-h-0 flex-1 flex-col p-5`}>
@@ -16,7 +34,7 @@ export default function PullListCard() {
         <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-2">
           <span className="flex shrink-0 items-center gap-2 rounded-full border border-accent/25 bg-accent/10 py-1 pl-2 pr-2.5 font-mono text-xs text-accent">
             <PackageCheck className="size-3.5" strokeWidth={2} />
-            {orders.length} open
+            {rows.length} open
           </span>
           <p className="min-w-0 text-xs leading-snug text-muted">
             Approved by the supervisor. Pull from the top: least remaining life first.
@@ -31,7 +49,7 @@ export default function PullListCard() {
       </div>
 
       <ol className="min-h-0 flex-1 divide-y divide-line overflow-y-auto overscroll-contain [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]">
-        {orders.length === 0 && (
+        {rows.length === 0 && (
           <li className="grid h-full place-items-center px-4 py-10 text-center">
             <span>
               <Basket className="pull-empty mx-auto mb-1 w-[168px]" intensity={0.6} label="An empty basket: nothing to pull right now" />
@@ -40,28 +58,48 @@ export default function PullListCard() {
             </span>
           </li>
         )}
-        {orders.map((order, index) => (
-          <OrderRow key={order.rec.id} order={order} position={index + 1} />
+        {rows.map((order, index) => (
+          <OrderRow key={order.rec.id} order={order} position={index + 1} hold={hold} release={release} />
         ))}
       </ol>
     </section>
   )
 }
 
-function OrderRow({ order: { rec, stock }, position }: { order: StockOrder; position: number }) {
+function OrderRow({ order, position, hold, release }: {
+  order: StockOrder
+  position: number
+  hold: (order: StockOrder, index: number) => void
+  release: (id: number, left: boolean) => void
+}) {
+  const { rec, stock } = order
   const { completeTask } = useInventory()
   const [choosing, setChoosing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [finished, setFinished] = useState(false) // server confirmed: play the animation
+  const [fading, setFading] = useState(false)
   const salvage = rec.type === 'SALVAGE'
   const tone = stock.dynamicHours < 24 ? 'text-danger' : stock.dynamicHours < 48 ? 'text-warn' : 'text-fg'
+
+  // Timers, not animationend: reduced motion has no animation to end, and the row must always leave.
+  useEffect(() => {
+    if (!finished) return
+    const playMs = matchMedia('(prefers-reduced-motion: reduce)').matches ? 1200 : salvage ? 3300 : 4500
+    const fade = setTimeout(() => setFading(true), playMs)
+    const gone = setTimeout(() => release(rec.id, true), playMs + FADE_MS)
+    return () => { clearTimeout(fade); clearTimeout(gone) }
+  }, [finished, salvage, rec.id, release])
 
   const send = async (result: 'done' | 'flagged', reason?: TaskReason) => {
     setBusy(true)
     setError('')
+    if (result === 'done') hold(order, position - 1) // before the POST: its refetch drops this row
     try {
-      await completeTask(rec.id, result, reason) // the refetch that follows drops this row
+      await completeTask(rec.id, result, reason)
+      if (result === 'done') setFinished(true)
     } catch (e) {
+      release(rec.id, false)
       // API errors carry a code and a readable message; a network failure is a bare TypeError.
       const err = e as { code?: string; message?: string }
       setError(err.code && err.message ? err.message : 'Could not reach the server. Check the connection and try again.')
@@ -74,7 +112,10 @@ function OrderRow({ order: { rec, stock }, position }: { order: StockOrder; posi
   const secondary = `${button} border border-line text-fg hover:bg-white/[0.04]`
 
   return (
-    <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 px-1 py-2.5 sm:grid-cols-[minmax(0,1fr)_120px_110px]">
+    <li
+      style={{ transitionDuration: `${FADE_MS}ms` }}
+      className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 px-1 py-2.5 transition-opacity sm:grid-cols-[minmax(0,1fr)_120px_110px] ${fading ? 'opacity-0' : ''}`}
+    >
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-2">
           <span className="w-4 shrink-0 font-mono text-xs text-muted">{position}</span>
@@ -93,8 +134,13 @@ function OrderRow({ order: { rec, stock }, position }: { order: StockOrder; posi
         <Clock3 className="size-2.5" /> approved {rec.decided_at ? timeAgo(rec.decided_at) : ''}
       </p>
 
-      <div className="col-span-2 flex flex-wrap items-center gap-2 pl-6 sm:col-span-3">
-        {choosing ? (
+      <div className="pull-done col-span-2 flex min-h-12 flex-wrap items-center gap-2 pl-6 sm:col-span-3">
+        {finished ? (
+          <>
+            <DoneAnimation salvage={salvage} once />
+            <span role="status" className="text-xs text-muted">{salvage ? 'Salvaged' : 'Loaded, on its way'}</span>
+          </>
+        ) : choosing ? (
           <>
             <span className="text-xs text-muted">What happened?</span>
             <button type="button" disabled={busy} onClick={() => send('flagged', 'not_found')} className={secondary}>
