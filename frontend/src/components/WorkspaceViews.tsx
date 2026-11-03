@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { api, type Schemas } from '../api/client'
 import { useInventory, type SensorRecord, type StockRecord, type StockUpdate, type ZoneHistory } from '../data/InventoryContext'
+import ChillerMap from './ChillerMap'
 import DoneAnimation from './DoneAnimation'
 import ShelfLifeComparisonBar from './ShelfLifeComparisonBar'
 import TrendChart, { type TrendPoint } from './TrendChart'
@@ -463,18 +464,11 @@ function EditField({
 }
 
 export function SensorsView() {
-  const { sensors, updateSensor, deleteSensor, locations: zones } = useInventory()
+  const { sensors, stocks, updateSensor, deleteSensor, locations: zones } = useInventory()
   const [selectedKey, setSelectedKey] = useState(sensors[0]?.key ?? '')
   const [deleting, setDeleting] = useState<SensorRecord | null>(null)
-  const [query, setQuery] = useState('')
-  const normalizedQuery = query.trim().toLowerCase()
-  const filteredSensors = sensors.filter((sensor) =>
-    !normalizedQuery ||
-    [sensor.name, sensor.id, sensor.location, sensor.status].some((value) =>
-      value.toLowerCase().includes(normalizedQuery),
-    ),
-  )
   const selected = sensors.find((sensor) => sensor.key === selectedKey) ?? sensors[0]
+  const batchesIn = (zone: string) => stocks.filter((stock) => stock.zone === zone && stock.activity.state === 'stored').length
   const removeSensor = async (key: string) => {
     await deleteSensor(key)
     if (key === selectedKey) setSelectedKey(sensors.find((sensor) => sensor.key !== key)?.key ?? '')
@@ -486,7 +480,7 @@ export function SensorsView() {
       <ViewHeading
         eyebrow="Sensor management"
         title="Sensor registry"
-        detail="Live temperature and humidity from each sensor's zone. Select a row to edit its name or zone."
+        detail="Live temperature and humidity from each sensor's zone. Select a sensor under the map to edit its name or zone. Room layout is illustrative."
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <SensorStat label="Total sensors" value={String(sensors.length)} hint={(() => { const n = new Set(sensors.map((sensor) => sensor.location)).size; return `Across ${n} warehouse ${n === 1 ? 'zone' : 'zones'}` })()} tone="text-fg" />
@@ -495,89 +489,54 @@ export function SensorsView() {
         <SensorStat label="Critical" value={String(sensors.filter((sensor) => sensor.status === 'Critical').length)} hint="Above the 4°C limit" tone="text-danger" />
       </div>
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_310px] xl:min-h-0 xl:flex-1">
-        <section className={`${card} flex min-h-0 flex-col overflow-hidden p-4`}>
-          <div className="mb-3 flex h-9 items-center gap-2.5 rounded-lg border border-line bg-night px-3 focus-within:border-accent/50">
-            <Search className="size-3.5 shrink-0 text-muted" strokeWidth={1.9} />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search sensor, ID, location, or status..."
-              aria-label="Search sensors"
-              className="h-full min-w-0 flex-1 bg-transparent text-xs text-fg outline-none placeholder:text-muted"
-            />
-            <span className="shrink-0 font-mono text-xs text-muted">
-              {filteredSensors.length}/{sensors.length}
-            </span>
-            {query && (
-              <button
-                type="button"
-                onClick={() => setQuery('')}
-                aria-label="Clear sensor search"
-                className="grid size-6 place-items-center rounded-md text-muted hover:bg-white/[0.04] hover:text-fg"
-              >
-                <X className="size-3.5" />
-              </button>
-            )}
-          </div>
-          {/* Narrow windows scroll the table sideways instead of squeezing its columns. */}
-          <div className="flex min-h-0 flex-1 flex-col overflow-x-auto">
-          <div className="flex min-h-0 min-w-[640px] flex-1 flex-col">
-          <div className="grid grid-cols-[minmax(0,1fr)_30px] gap-1.5 border-b border-line px-2 pb-2 text-xs text-muted">
-            <span className="grid grid-cols-[1.35fr_1fr_80px_76px_76px_82px] gap-3">
-              <span>Sensor</span><span>Zone</span><span>Temp</span><span>Humidity</span><span>Updated</span><span>Status</span>
-            </span>
-            <span />
-          </div>
-          <div className="min-h-0 flex-1 divide-y divide-line overflow-y-auto overscroll-contain [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]">
-            {filteredSensors.length ? (
-              filteredSensors.map((sensor) => (
-                <div
-                  key={sensor.key}
-                  className={`grid min-h-[42px] grid-cols-[minmax(0,1fr)_30px] items-center gap-1.5 px-2 py-1.5 transition-colors ${
-                    selectedKey === sensor.key ? 'bg-accent/[0.06]' : 'hover:bg-white/[0.025]'
-                  }`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setSelectedKey(sensor.key)}
-                    className="grid h-full w-full grid-cols-[1.35fr_1fr_80px_76px_76px_82px] items-center gap-3 text-left"
+        <section className={`${card} flex min-h-0 flex-col gap-3 overflow-hidden p-4`}>
+          <ChillerMap />
+          {sensors.length ? (
+            <div className="grid max-h-[184px] shrink-0 grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))] gap-2 overflow-y-auto overscroll-contain [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]">
+              {sensors.map((sensor) => {
+                const batches = batchesIn(sensor.location)
+                return (
+                  <div
+                    key={sensor.key}
+                    className={`grid grid-cols-[minmax(0,1fr)_30px] items-center gap-1.5 rounded-[10px] border px-3 py-2 transition-colors ${
+                      selected?.key === sensor.key ? 'border-accent/40 bg-accent/[0.06]' : 'border-line hover:bg-white/[0.025]'
+                    }`}
                   >
-                    <span className="flex min-w-0 items-center gap-1.5">
-                      <strong className="min-w-0 flex-1 text-xs leading-tight text-fg" title={sensor.name}>{sensor.name}</strong>
-                      <small className="shrink-0 rounded bg-pill px-1 py-0.5 font-mono text-xs leading-none text-muted">{sensor.id}</small>
-                    </span>
-                    <span className="flex items-center gap-1.5 truncate text-xs text-muted"><MapPin className="size-3" />{sensor.location}</span>
-                    <span className={`font-mono text-xs font-semibold ${sensor.status === 'Critical' ? 'text-danger' : 'text-fg'}`}>{sensor.temperature == null ? '—' : `${sensor.temperature.toFixed(1)}°C`}</span>
-                    <span className="font-mono text-xs text-fg">{sensor.humidity == null ? '—' : `${Math.round(sensor.humidity)}%`}</span>
-                    <span className="font-mono text-xs text-muted">{sensor.updated ?? 'never'}</span>
-                    <Status status={sensor.status} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDeleting(sensor)}
-                    aria-label={`Delete ${sensor.name}`}
-                    className="grid size-6 place-items-center rounded-md border border-line text-muted hover:border-danger/30 hover:bg-danger/10 hover:text-danger"
-                  >
-                    <Trash2 className="size-3" />
-                  </button>
-                </div>
-              ))
-            ) : (
-              <div className="grid h-[220px] place-items-center text-center">
-                <div>
-                  {query ? <Search className="mx-auto size-6 text-muted" /> : <Radio className="mx-auto size-6 text-muted" />}
-                  <p className="mt-3 text-xs font-semibold text-fg">
-                    {query ? 'No sensors found' : 'No sensors registered'}
-                  </p>
-                  <p className="mt-1 text-xs text-muted">
-                    {query ? 'Try another sensor name, ID, location, or status.' : 'Add a sensor from Quick add to begin monitoring.'}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-          </div>
-          </div>
+                    <button type="button" aria-pressed={selected?.key === sensor.key} onClick={() => setSelectedKey(sensor.key)} className="min-w-0 text-left">
+                      <span className="flex items-center gap-2 [&>span]:shrink-0 [&>span]:whitespace-nowrap">
+                        <strong className="min-w-0 truncate text-xs text-fg" title={sensor.name}>{sensor.name}</strong>
+                        <Status status={sensor.status} />
+                      </span>
+                      <span className="mt-1 flex items-center gap-1 truncate font-mono text-xs text-muted">
+                        <MapPin className="size-3 shrink-0" />
+                        <span className="truncate" title={sensor.id}>{sensor.location} · {sensor.id}</span>
+                      </span>
+                      <span className="mt-0.5 block truncate font-mono text-xs text-muted">
+                        <span className={`font-semibold ${sensor.status === 'Critical' ? 'text-danger' : 'text-fg'}`}>{sensor.temperature == null ? '—' : `${sensor.temperature.toFixed(1)}°C`}</span>
+                        {' · '}{sensor.humidity == null ? '—' : `${Math.round(sensor.humidity)}%`}
+                        {' · '}{sensor.updated ?? 'never'}
+                        {' · '}{batches} {batches === 1 ? 'batch' : 'batches'}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleting(sensor)}
+                      aria-label={`Delete ${sensor.name}`}
+                      className="grid size-6 place-items-center rounded-md border border-line text-muted hover:border-danger/30 hover:bg-danger/10 hover:text-danger"
+                    >
+                      <Trash2 className="size-3" />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="shrink-0 py-4 text-center">
+              <Radio className="mx-auto size-6 text-muted" />
+              <p className="mt-3 text-xs font-semibold text-fg">No sensors registered</p>
+              <p className="mt-1 text-xs text-muted">Add a sensor from Quick add to begin monitoring.</p>
+            </div>
+          )}
         </section>
         {selected ? (
           <SensorEditor key={selected.key} sensor={selected} zones={zones} onSave={updateSensor} />
