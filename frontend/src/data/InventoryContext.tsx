@@ -42,6 +42,10 @@ export type StockRecord = {
   breach: Breach
   staticHours: number
   dynamicHours: number
+  /** Hours of life lost to heat: effective age minus time actually stored. */
+  lostHours: number
+  /** lostHours as a share of the labelled life (received -> printed expiry), 0-100. */
+  lossPct: number
   printedExpiry: string
   predictedExpiry: string | null
   rec: string
@@ -57,7 +61,7 @@ export type StockRecord = {
 export type StockOrder = { rec: Recommendation; stock: StockRecord }
 export type TaskReason = 'not_found' | 'spoiled'
 
-export type StockInput ={ code: string; zone: string; units: number; detail?: string; printedExpiration: string }
+export type StockInput ={ code: string; productId: string; zone: string; units: number; detail?: string; printedExpiration: string }
 export type StockUpdate = Pick<StockRecord, 'identifier' | 'zone' | 'detail' | 'units'>
 
 type InventoryContextValue = {
@@ -70,6 +74,7 @@ type InventoryContextValue = {
   histories: ZoneHistory[]
   locations: string[]
   categories: string[]
+  products: { id: string; name: string }[]
   error: string | null
   /** True once the first fetch has finished, whether it worked or failed. */
   loaded: boolean
@@ -128,6 +133,11 @@ function toStock(
   // Shelf-life clock: the zone's simulated time when SIM_SPEEDUP runs ahead of the wall clock.
   const now = b.predicted_expiry && b.rul_h != null ? new Date(b.predicted_expiry).getTime() - b.rul_h * HOUR : Date.now()
   const peak = series.length ? Math.max(...series) : 0
+  // Life lost to heat: how much older the batch is than the time it has actually been stored.
+  // Stays correct after the label or the estimate runs out (label-minus-estimate went to 0 then).
+  const elapsedH = (now - Date.parse(b.received_at)) / HOUR
+  const labelH = Math.max(1, (Date.parse(b.printed_expiry) - Date.parse(b.received_at)) / HOUR)
+  const lostHours = Math.round(Math.max(0, (b.effective_age_h ?? elapsedH) - elapsedH))
   const latest = series.at(-1) ?? 0
   return {
     key: String(b.id),
@@ -143,6 +153,8 @@ function toStock(
     staticHours: Math.max(0, hoursUntil(b.printed_expiry, now)),
     // Until the worker's first run (about 30 s after start) there is no RUL yet: show the printed life, not a total loss.
     dynamicHours: b.rul_h == null ? Math.max(0, hoursUntil(b.printed_expiry, now)) : Math.round(b.rul_h),
+    lostHours,
+    lossPct: Math.round(Math.min(100, (lostHours / labelH) * 100)),
     printedExpiry: b.printed_expiry,
     predictedExpiry: b.predicted_expiry,
     rec: recText(rec, order, flagged, b.status),
@@ -176,7 +188,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<StockOrder[]>([])
   const [histories, setHistories] = useState<ZoneHistory[]>([])
   const [locations, setLocations] = useState<string[]>([])
-  const [categories, setCategories] = useState<string[]>([])
+  const [products, setProducts] = useState<{ id: string; name: string }[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
 
@@ -233,7 +245,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       setRecommendations(recs.items)
       setHistories(histories)
       setLocations(zones.items.map((z) => z.id))
-      setCategories(products.items.map((p) => p.name))
+      setProducts(products.items.map(({ id, name }) => ({ id, name })))
       setError(null)
     } catch (e) {
       setError((e as { message?: string }).message ?? 'Cannot reach the backend at localhost:8000')
@@ -258,7 +270,8 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     orders,
     histories,
     locations,
-    categories,
+    categories: products.map((p) => p.name),
+    products,
     error,
     loaded,
     refresh,
@@ -275,10 +288,10 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     updateStock: (key, u) =>
       write(`/batches/${key}`, 'PATCH', { code: u.identifier, zone_id: u.zone, notes: u.detail || null, quantity: u.units }),
     deleteStock: (key) => write(`/batches/${key}`, 'DELETE'),
-    addStock: ({ code, zone, units, detail, printedExpiration }) =>
+    addStock: ({ code, productId, zone, units, detail, printedExpiration }) =>
       write('/batches', 'POST', {
         code,
-        product_id: 'chicken-breast',
+        product_id: productId,
         zone_id: zone,
         received_at: new Date().toISOString(),
         printed_expiry: new Date(`${printedExpiration}T23:59:59`).toISOString(),

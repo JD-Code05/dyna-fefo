@@ -147,7 +147,8 @@ docker compose run --rm api python -m app.db.seed
 
 ### Simulator scenarios
 ```bash
-SCENARIO=ltl_abuse SIM_SPEEDUP=60 docker compose up simulator
+SCENARIO=ltl_abuse SIM_SPEEDUP=60 docker compose up simulator      # Chiller A
+SCENARIO_B=ltl_abuse SIM_SPEEDUP=60 docker compose up simulator-b  # Chiller B
 ```
 Scenarios: `normal`, `door_open`, `compressor_failure`, `ltl_abuse`, `recover`. `SIM_SPEEDUP` moves virtual time forward faster, so decay shows up within minutes.
 
@@ -188,7 +189,7 @@ rul_h            = max(0, shelf_life_ref_hours - effective_age_h)
 rul_ratio        = rul_h / shelf_life_ref_hours
 ```
 
-Chicken breast uses `t_ref_c = 4` and `q10 = 2.5`. Both are placeholders until calibration. As a sanity check, Herron et al. (2022) cyclic abuse (2 h at 4 °C, then 2 h at about 23 °C) should cost about 2.3 days of shelf life.
+Products and their parameters come from `data/shelf_life_by_temperature.csv`, a **synthetic** dataset the team generated with an LLM from the research paper (fresh chicken breast: 168 h at 4 °C, `q10 = 2.97`; fresh milk: 235 h, 2.46; tomato-based dish: 131 h, 1.98). `tests/test_dataset_fit.py` checks the model stays within 10% of the dataset at every temperature. On Herron et al. (2022) cyclic abuse (2 h at 4 °C, then 2 h at about 23 °C) the chicken parameters lose about 3.5 days, more than the 1.5 to 2.25 days Herron measured.
 
 ## Evaluation
 

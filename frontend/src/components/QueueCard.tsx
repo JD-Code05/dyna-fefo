@@ -46,7 +46,7 @@ export default function QueueCard() {
         {atRiskProducts.map((batch) => {
           const salvage = batch.recommendation?.type === 'SALVAGE'
           const critical = salvage || batch.breach === 'critical'
-          const loss = Math.max(0, Math.round(((batch.staticHours - batch.dynamicHours) / Math.max(1, batch.staticHours)) * 100))
+          const loss = batch.lossPct
 
           return (
             <li key={batch.id} className="grid min-h-[50px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 px-1 py-2 sm:h-[50px] sm:grid-cols-[minmax(0,1fr)_120px_96px] sm:py-0">

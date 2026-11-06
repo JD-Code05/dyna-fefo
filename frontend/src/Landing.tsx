@@ -47,8 +47,8 @@ function useReveal(root: React.RefObject<HTMLElement | null>) {
 }
 
 // The real Q10 model over 24 h in 10-minute steps. Base pattern is Herron et al. (2022): 2 h at 4 °C, 2 h at
-// about 23 °C. The door button adds the visitor's own heat on top.
-const SHELF = 240, TREF = 4, Q10 = 2.5, X0 = 40, X1 = 590, STEP = 10, N = (24 * 60) / STEP
+// about 23 °C. The door button adds the visitor's own heat on top. SHELF and Q10 match chicken in data/products.yaml.
+const SHELF = 168, TREF = 4, Q10 = 2.97, X0 = 40, X1 = 590, STEP = 10, N = (24 * 60) / STEP
 const Y = (t: number) => 190 - t * (170 / 24)
 const X = (h: number) => X0 + (h / 24) * (X1 - X0)
 const pattern = (m: number) => (Math.floor(m / 120) % 2 ? 23 + Math.sin(m) * 0.3 : 4 + Math.sin(m * 0.7) * 0.25)
@@ -215,7 +215,7 @@ function ShelfLifeDemo({ onRank }: { onRank: () => void }) {
 
 const STEPS: [typeof Thermometer, string, string, string][] = [
   [Thermometer, 'Sense', 'Each chiller sends temperature and humidity every few seconds.', '4.2 °C · 86 %'],
-  [Activity, 'Recalculate', 'Warm minutes age a batch faster. FreshOps adds them up for every batch.', 'Q10 = 2.5'],
+  [Activity, 'Recalculate', 'Warm minutes age a batch faster. FreshOps adds them up for every batch.', 'Q10 ≈ 3'],
   [ListOrdered, 'Rank', 'Batches with the least real life left go to the top of the pull list.', 'Dynamic FEFO'],
   [Check, 'Approve', 'A supervisor approves or rejects every dispatch and salvage. Nothing runs on its own.', 'Human in the loop'],
   [PackageCheck, 'Confirm', "Staff tap once when the order is done, or flag it if they can't.", 'Logged in history'],
@@ -224,10 +224,10 @@ const STEPS: [typeof Thermometer, string, string, string][] = [
 const FAQ: [string, string][] = [
   ['Does FreshOps replace our inventory system?', "No. It doesn't track stock movements, orders, or sales. It reads chiller temperatures, works out how much life each batch has left, and tells you which batch to move first."],
   ['Does it change prices or move stock by itself?', 'No. Every dispatch, markdown, and salvage waits for a supervisor to approve or reject it, and each decision is saved in the change history.'],
-  ['How does it know how much life is left?', 'It adds up how warm each batch has been. Warm hours count more than cold ones: every 10 °C above 4 °C makes the meat age 2.5 times faster (a Q10 model). On a day of on-and-off warming, it loses about 2.3 days, close to the 2.25 days measured for fresh chicken.'],
+  ['How does it know how much life is left?', 'It adds up how warm each batch has been. Warm hours count more than cold ones: every 10 °C above 4 °C makes chicken age about 3 times faster (milk about 2.5, the tomato dish about 2; a Q10 model). On a day of on-and-off warming, it loses about 3.5 days. A lab study of fresh chicken measured 1.5 to 2.25 days, so our model errs on the safe side.'],
   ['What if a sensor goes offline?', 'The dashboard raises a sensor-offline alert for that chiller, so someone can go and check it before trusting the numbers again.'],
   ['Does it need the internet?', 'No. Everything runs on one laptop and works fully offline.'],
-  ['Is this real data?', 'Not yet. The chillers, batches, and reviews in this demo are simulated. Results come from calibrated models, not field trials.'],
+  ['Is this real data?', 'Not yet. The chillers and batches in this demo are simulated, and the shelf-life numbers come from a synthetic dataset built from our research. Results come from calibrated models, not field trials.'],
 ]
 
 export default function Landing({ onSignIn }: { onSignIn: (role: Role) => void }) {
@@ -264,7 +264,7 @@ export default function Landing({ onSignIn }: { onSignIn: (role: Role) => void }
           </div>
           <p className="purpose rise">Shelf life from the cold room, <em>not the label.</em></p>
           <p className="sub rise">
-            FreshOps watches the temperature in your chillers, recalculates how much life each batch of chicken really has left, and tells
+            FreshOps watches the temperature in your chillers, recalculates how much life each batch of chicken, milk, or ready meals really has left, and tells
             your team which batch to move first.
           </p>
           <div className="hero-cta rise">
@@ -278,9 +278,9 @@ export default function Landing({ onSignIn }: { onSignIn: (role: Role) => void }
 
       <section className="block" id="why">
         <div className="wrap">
-          <h2 className="rise">A printed date can't feel the heat. <span className="quiet">Chicken can.</span></h2>
+          <h2 className="rise two-line">Food spoils by temperature,<br /> <span className="quiet">not by date.</span></h2>
           <p className="lede rise">
-            Stores pick stock by the date on the label: first to expire, first out. That date assumes the meat stayed cold the whole way.
+            Stores pick stock by the date on the label: first to expire, first out. That date assumes the food stayed cold the whole way.
             Every open door, slow unload, or failing compressor quietly eats shelf life the label never shows.
           </p>
           <div className="why-grid">
@@ -291,12 +291,12 @@ export default function Landing({ onSignIn }: { onSignIn: (role: Role) => void }
               </div>
               <div className="cycle-axis"><span>grey: 2 h at 4 °C</span><span>red: 2 h at about 23 °C</span></div>
               <div className="cycle-result"><span className="mono">−2.25 days</span><span>of shelf life lost, while the label stayed the same.</span></div>
-              <p className="cite">Fresh chicken breast under cyclic temperature abuse. FreshOps' model loses about 2.3 days on the same pattern.</p>
+              <p className="cite">Fresh chicken breast under cyclic temperature abuse. FreshOps' model loses about 3.5 days on the same pattern.</p>
             </div>
             <ul className="floor rise">
               <li><span className="who">On the floor</span><p>Pickers grab the pallet at the front, not the one that is closest to spoiling.</p></li>
               <li><span className="who">Supervisors</span><p>Updates travel by voice. Nobody can see what was moved, or why.</p></li>
-              <li><span className="who">The result</span><p>Meat that looked fine on paper gets thrown out, or worse, gets sold.</p></li>
+              <li><span className="who">The result</span><p>Food that looked fine on paper gets thrown out, or worse, gets sold.</p></li>
             </ul>
           </div>
         </div>
@@ -327,17 +327,17 @@ export default function Landing({ onSignIn }: { onSignIn: (role: Role) => void }
               <div className="role-head"><h3>Supervisor</h3><p>See every chiller and every batch. Approve or reject what FreshOps recommends, and check who did what.</p></div>
               <ul><li>Live chiller map</li><li>Shelf-life comparison</li><li>Priority dispatch</li><li>Salvage flags</li><li>Change history</li></ul>
               <div className="mini" aria-hidden>
-                <div className="mini-row"><span className="mono">CHK-004</span><span><span className="tag salvage">Salvage</span></span><span className="acts"><span>Reject</span><span className="go">Approve</span></span></div>
-                <div className="mini-row"><span className="mono">CHK-002</span><span><span className="tag dispatch">Dispatch first</span></span><span className="acts"><span>Reject</span><span className="go">Approve</span></span></div>
-                <div className="mini-row"><span className="mono">CHK-001</span><span className="rul"><span className="bar"><i style={{ width: '72%' }} /></span><span className="mono">7.2 d</span></span><span style={{ color: 'var(--muted)', fontSize: 12 }}>No action</span></div>
+                <div className="mini-row"><span className="mono">CHK-005</span><span><span className="tag salvage">Salvage</span></span><span className="acts"><span>Reject</span><span className="go">Approve</span></span></div>
+                <div className="mini-row"><span className="mono">MLK-002</span><span><span className="tag dispatch">Dispatch first</span></span><span className="acts"><span>Reject</span><span className="go">Approve</span></span></div>
+                <div className="mini-row"><span className="mono">CHK-001</span><span className="rul"><span className="bar"><i style={{ width: '95%' }} /></span><span className="mono">6.7 d</span></span><span style={{ color: 'var(--muted)', fontSize: 12 }}>No action</span></div>
               </div>
             </article>
             <article className="role rise">
               <div className="role-head"><h3>Staff</h3><p>A short pull list of approved orders. Do the job, tap done, move on. No settings, nothing to break.</p></div>
               <ul><li>Pull list</li><li>One-tap confirm</li><li>Can't do it: not found or spoiled</li><li>Chiller readings</li></ul>
               <div className="mini" aria-hidden>
-                <div className="mini-row"><span className="mono">CHK-002</span><span>Ship today · Chiller A</span><span className="acts"><span>Can't do it</span><span className="go">Shipment done</span></span></div>
-                <div className="mini-row"><span className="mono">CHK-004</span><span>Salvage · Chiller B</span><span className="acts"><span>Can't do it</span><span className="go">Salvage done</span></span></div>
+                <div className="mini-row"><span className="mono">MLK-002</span><span>Ship today · Chiller B</span><span className="acts"><span>Can't do it</span><span className="go">Shipment done</span></span></div>
+                <div className="mini-row"><span className="mono">TOM-002</span><span>Salvage · Chiller B</span><span className="acts"><span>Can't do it</span><span className="go">Salvage done</span></span></div>
               </div>
             </article>
           </div>

@@ -58,9 +58,9 @@ def test_me_unseeded_errors(client):
     assert r.status_code == 500 and r.json()["error"]["code"] == "demo_user_missing"
 
 
-def test_products_lists_chicken(client, seeded):
+def test_products_lists_dataset_products(client, seeded):
     items = client.get("/api/v1/products").json()["items"]
-    assert [p["id"] for p in items] == ["chicken-breast"]
+    assert [p["id"] for p in items] == ["chicken-breast", "fresh-milk", "tomato-dish"]
     assert "base_price" not in items[0]
 
 
@@ -70,7 +70,7 @@ def test_seed_is_idempotent(db):
 
     seed(db)
     seed(db)
-    assert db.query(Batch).count() == 5
+    assert db.query(Batch).count() == 9
     assert db.query(Device).count() == 2
     assert db.query(Zone).count() == 2
 

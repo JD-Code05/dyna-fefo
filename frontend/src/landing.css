@@ -104,6 +104,7 @@ html:has(.landing) {
   section.block { padding: 140px 0; }
   .block h2, .close h2 { font-size: clamp(2.2rem, 4.8vw, 3.6rem); font-weight: 700; letter-spacing: -0.035em; line-height: 1.02; max-width: 16ch; text-wrap: balance; }
   .block h2 .quiet { color: var(--muted); }
+  .block h2.two-line { max-width: none; }
   .lede { margin-top: 24px; max-width: 60ch; color: var(--muted); font-size: 18px; line-height: 1.6; }
   .why-grid { margin-top: 72px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 64px; align-items: start; }
   .cycle { border: 1px solid var(--line); border-radius: 16px; padding: 24px; background: var(--surface); }

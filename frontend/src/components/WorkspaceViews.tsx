@@ -129,7 +129,7 @@ function ExpirationChart() {
   const items = [...stocks].sort((a, b) => a.dynamicHours - b.dynamicHours)
   const maxHours = Math.max(24, ...items.flatMap((batch) => [batch.staticHours, batch.dynamicHours]))
   const averageGap = items.length
-    ? Math.round(items.reduce((sum, batch) => sum + batch.staticHours - batch.dynamicHours, 0) / items.length)
+    ? Math.round(items.reduce((sum, batch) => sum + batch.lostHours, 0) / items.length)
     : 0
   return (
     <section className={`${card} flex h-full min-h-0 flex-col overflow-hidden p-5`}>
@@ -169,7 +169,7 @@ function ExpirationChart() {
 
         <div className="min-h-0 flex-1 divide-y divide-line/70 overflow-y-auto overscroll-contain">
           {items.length ? items.map((batch) => {
-            const gap = Math.max(0, batch.staticHours - batch.dynamicHours)
+            const gap = batch.lostHours
             return (
               <div key={batch.key} className="grid h-[52px] grid-cols-[92px_minmax(0,1fr)_48px] items-center gap-3 px-3 hover:bg-white/[0.02]">
                 <span className="min-w-0">
@@ -752,7 +752,7 @@ export function DecisionsView({ onOpenQueue }: { onOpenQueue: () => void }) {
 }
 
 function ProductRow({ batch }: { batch: StockRecord }) {
-  const lost = batch.staticHours - batch.dynamicHours
+  const lost = batch.lostHours
   const critical = batch.breach === 'critical'
   return (
     <div className="grid h-[72px] grid-cols-[1.2fr_0.8fr_1fr_1fr_90px_1.2fr] items-center gap-3 px-3 hover:bg-white/[0.02]">

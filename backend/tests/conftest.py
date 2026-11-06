@@ -75,16 +75,16 @@ AGED_NOW = NOW
 
 @pytest.fixture
 def aged_batch_with_rec(db, seeded, products):
-    """CHK-004 in chiller-a, 210 h old at 4 C all along: ratio 0.125 -> pending PRIORITY_DISPATCH."""
+    """CHK-004 in chiller-a, 147 h old at 4 C all along: ratio 0.125 -> pending PRIORITY_DISPATCH."""
     from datetime import timedelta
 
     from app.db.models import Batch, Recommendation, Telemetry
     from app.services.rul_jobs import recompute_all
 
     b = db.query(Batch).filter_by(code="CHK-004").one()
-    b.zone_id, b.received_at = "chiller-a", AGED_NOW - timedelta(hours=210)
-    b.printed_expiry = b.received_at + timedelta(days=10)
-    for i in range(211):
+    b.zone_id, b.received_at = "chiller-a", AGED_NOW - timedelta(hours=147)
+    b.printed_expiry = b.received_at + timedelta(hours=168)
+    for i in range(148):
         db.add(
             Telemetry(
                 device_id="esp32-chiller-01",
