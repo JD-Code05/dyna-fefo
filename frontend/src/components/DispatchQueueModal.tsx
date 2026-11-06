@@ -427,7 +427,7 @@ function Row({
   const meta = actionMeta[b.action]
   const RecIcon = meta.icon
   const staticH = Math.max(1, b.staticHours)
-  const gap = Math.round(((b.dynamicHours - staticH) / staticH) * 100)
+  const gap = -b.lossPct
   const surface = 'bg-raised/45 ring-line'
   const accent = b.breach === 'critical' ? 'bg-danger/75' : b.breach === 'spike' ? 'bg-warn/75' : 'bg-muted/30'
   const gapTone =

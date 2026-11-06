@@ -42,6 +42,10 @@ export type StockRecord = {
   breach: Breach
   staticHours: number
   dynamicHours: number
+  /** Hours of life lost to heat: effective age minus time actually stored. */
+  lostHours: number
+  /** lostHours as a share of the labelled life (received -> printed expiry), 0-100. */
+  lossPct: number
   printedExpiry: string
   predictedExpiry: string | null
   rec: string
@@ -129,6 +133,11 @@ function toStock(
   // Shelf-life clock: the zone's simulated time when SIM_SPEEDUP runs ahead of the wall clock.
   const now = b.predicted_expiry && b.rul_h != null ? new Date(b.predicted_expiry).getTime() - b.rul_h * HOUR : Date.now()
   const peak = series.length ? Math.max(...series) : 0
+  // Life lost to heat: how much older the batch is than the time it has actually been stored.
+  // Stays correct after the label or the estimate runs out (label-minus-estimate went to 0 then).
+  const elapsedH = (now - Date.parse(b.received_at)) / HOUR
+  const labelH = Math.max(1, (Date.parse(b.printed_expiry) - Date.parse(b.received_at)) / HOUR)
+  const lostHours = Math.round(Math.max(0, (b.effective_age_h ?? elapsedH) - elapsedH))
   const latest = series.at(-1) ?? 0
   return {
     key: String(b.id),
@@ -144,6 +153,8 @@ function toStock(
     staticHours: Math.max(0, hoursUntil(b.printed_expiry, now)),
     // Until the worker's first run (about 30 s after start) there is no RUL yet: show the printed life, not a total loss.
     dynamicHours: b.rul_h == null ? Math.max(0, hoursUntil(b.printed_expiry, now)) : Math.round(b.rul_h),
+    lostHours,
+    lossPct: Math.round(Math.min(100, (lostHours / labelH) * 100)),
     printedExpiry: b.printed_expiry,
     predictedExpiry: b.predicted_expiry,
     rec: recText(rec, order, flagged, b.status),
