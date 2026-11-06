@@ -82,6 +82,21 @@ services:
       api:
         condition: service_healthy
 
+  simulator-b:
+    build: ./simulator
+    restart: unless-stopped
+    environment:
+      MQTT_HOST: mqtt
+      SCENARIO: ${SCENARIO_B:-normal}
+      SIM_SPEEDUP: ${SIM_SPEEDUP:-1}
+      DEVICE_ID: esp32-chiller-02
+      ZONE_ID: chiller-b
+    depends_on:
+      mqtt:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
   frontend:
     build: ./frontend
     profiles: ["ui"]
