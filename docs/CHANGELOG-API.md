@@ -2,6 +2,14 @@
 
 Breaking and notable changes to `/api/v1`, newest first. After pulling, regenerate the frontend types: `cd frontend && npm run gen:api`.
 
+## 2026-11-06: products from the synthetic dataset
+
+Not breaking; no schema changes.
+
+- `GET /products` now returns 3 items: `chicken-breast`, `fresh-milk`, `tomato-dish`. Their `shelf_life_ref_hours` and `q10` are fitted from `data/shelf_life_by_temperature.csv` (chicken is now 168 h and 2.97, was 240 h and 2.5).
+- `POST /batches` accepts any of those `product_id`s. The Add batch form now has a product dropdown.
+- The seed has 9 batches (CHK-001…005, MLK-001/002, TOM-001/002).
+
 ## 2026-10-27: staff task confirmation
 
 Design: `docs/superpowers/specs/2026-10-27-staff-task-confirmation-design.md`

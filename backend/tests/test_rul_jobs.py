@@ -22,8 +22,8 @@ def test_recompute_sets_state_and_predicted_expiry(db, seeded, products):
     b = db.query(Batch).filter_by(code="CHK-001").one()
     add_readings(db, "chiller-a", b.received_at, [4] * 13)
     s = recompute_batch(db, b, products["chicken-breast"], b.received_at + timedelta(hours=12))
-    assert s.rul_h == pytest.approx(228)
-    assert s.predicted_expiry == b.received_at + timedelta(hours=12 + 228)
+    assert s.rul_h == pytest.approx(156)
+    assert s.predicted_expiry == b.received_at + timedelta(hours=12 + 156)
 
 
 def test_deleted_batches_skipped(db, seeded, products):
@@ -47,14 +47,14 @@ def test_batches_list_sorted_by_rul(client, db, seeded, products):
 def test_recompute_twice_same_now_upserts_and_appends_history(db, seeded, products):
     recompute_all(db, products, NOW)
     recompute_all(db, products, NOW)
-    assert db.query(BatchState).count() == 5
-    assert db.query(BatchStateHistory).count() == 10
+    assert db.query(BatchState).count() == 9
+    assert db.query(BatchStateHistory).count() == 18
 
 
 def test_non_active_skipped(db, seeded, products):
     db.query(Batch).filter_by(code="CHK-003").one().status = "dispatched"
     db.commit()
-    assert len(recompute_all(db, products, NOW)) == 4
+    assert len(recompute_all(db, products, NOW)) == 8
 
 
 def test_rul_endpoint(client, db, seeded, products):
@@ -73,15 +73,15 @@ def test_unknown_product_skipped_others_computed(db, seeded, products):
     db.query(Batch).filter_by(code="CHK-004").one().product_id = "fish"
     db.commit()
     states = recompute_all(db, products, NOW)
-    assert len(states) == 4 and db.query(BatchState).count() == 4
+    assert len(states) == 8 and db.query(BatchState).count() == 8
 
 
-@pytest.mark.parametrize(("sim", "expected_age"), [(True, 100), (False, 12)])
+@pytest.mark.parametrize(("sim", "expected_age"), [(True, 100), (False, 8)])
 def test_sim_mode_clock_is_zones_latest_reading(db, seeded, products, monkeypatch, sim, expected_age):
     monkeypatch.setattr(get_settings(), "sim_mode", sim)
-    b = db.query(Batch).filter_by(code="CHK-001").one()  # received 12 h ago (wall clock)
+    b = db.query(Batch).filter_by(code="CHK-001").one()  # received 8 h ago (wall clock)
     add_readings(db, "chiller-a", b.received_at, [4])
-    add_readings(db, "chiller-a", b.received_at + timedelta(hours=100), [4])  # SIM_SPEEDUP ran 88 h ahead
+    add_readings(db, "chiller-a", b.received_at + timedelta(hours=100), [4])  # SIM_SPEEDUP ran 92 h ahead
     state = next(s for s in recompute_all(db, products) if s.batch_id == b.id)
     assert state.effective_age_h == pytest.approx(expected_age, abs=0.1)
 

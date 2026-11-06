@@ -57,7 +57,7 @@ export type StockRecord = {
 export type StockOrder = { rec: Recommendation; stock: StockRecord }
 export type TaskReason = 'not_found' | 'spoiled'
 
-export type StockInput ={ code: string; zone: string; units: number; detail?: string; printedExpiration: string }
+export type StockInput ={ code: string; productId: string; zone: string; units: number; detail?: string; printedExpiration: string }
 export type StockUpdate = Pick<StockRecord, 'identifier' | 'zone' | 'detail' | 'units'>
 
 type InventoryContextValue = {
@@ -70,6 +70,7 @@ type InventoryContextValue = {
   histories: ZoneHistory[]
   locations: string[]
   categories: string[]
+  products: { id: string; name: string }[]
   error: string | null
   /** True once the first fetch has finished, whether it worked or failed. */
   loaded: boolean
@@ -176,7 +177,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<StockOrder[]>([])
   const [histories, setHistories] = useState<ZoneHistory[]>([])
   const [locations, setLocations] = useState<string[]>([])
-  const [categories, setCategories] = useState<string[]>([])
+  const [products, setProducts] = useState<{ id: string; name: string }[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
 
@@ -233,7 +234,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       setRecommendations(recs.items)
       setHistories(histories)
       setLocations(zones.items.map((z) => z.id))
-      setCategories(products.items.map((p) => p.name))
+      setProducts(products.items.map(({ id, name }) => ({ id, name })))
       setError(null)
     } catch (e) {
       setError((e as { message?: string }).message ?? 'Cannot reach the backend at localhost:8000')
@@ -258,7 +259,8 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     orders,
     histories,
     locations,
-    categories,
+    categories: products.map((p) => p.name),
+    products,
     error,
     loaded,
     refresh,
@@ -275,10 +277,10 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     updateStock: (key, u) =>
       write(`/batches/${key}`, 'PATCH', { code: u.identifier, zone_id: u.zone, notes: u.detail || null, quantity: u.units }),
     deleteStock: (key) => write(`/batches/${key}`, 'DELETE'),
-    addStock: ({ code, zone, units, detail, printedExpiration }) =>
+    addStock: ({ code, productId, zone, units, detail, printedExpiration }) =>
       write('/batches', 'POST', {
         code,
-        product_id: 'chicken-breast',
+        product_id: productId,
         zone_id: zone,
         received_at: new Date().toISOString(),
         printed_expiry: new Date(`${printedExpiration}T23:59:59`).toISOString(),

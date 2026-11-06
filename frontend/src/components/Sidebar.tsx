@@ -18,7 +18,7 @@ export default function Sidebar({
   onSelectTab: (tab: WorkspaceTab) => void
   onOpenQueue: () => void
 }) {
-  const { addSensor, addStock, locations, sensors, stocks, recommendations } = useInventory()
+  const { addSensor, addStock, locations, products, sensors, stocks, recommendations } = useInventory()
   const [adding, setAdding] = useState<AddType | null>(null)
   const [added, setAdded] = useState('')
   const [error, setError] = useState('')
@@ -43,6 +43,7 @@ export default function Sidebar({
       } else {
         await addStock({
           code: get('primary'),
+          productId: get('product'),
           detail: get('detail'),
           zone: get('location'),
           units: Number.parseInt(get('secondary'), 10) || 0,
@@ -111,7 +112,10 @@ export default function Sidebar({
             />
             {adding === 'stock' ? (
               <>
-                <p className="mt-1.5 text-xs text-muted">Product · Fresh chicken breast</p>
+                <select required name="product" aria-label="Product" defaultValue="" className="mt-1.5 h-8 w-full rounded-lg border border-line bg-night px-2.5 text-xs text-fg outline-none focus:border-accent/50">
+                  <option value="" disabled>Choose product</option>
+                  {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
                 <input name="detail" aria-label="Notes" placeholder="Notes · 12 × 500g trays" className="mt-1.5 h-8 w-full rounded-lg border border-line bg-night px-2.5 text-xs text-fg outline-none placeholder:text-muted focus:border-accent/50" />
                 <select required name="location" aria-label="Stock location" defaultValue="" className="mt-1.5 h-8 w-full rounded-lg border border-line bg-night px-2.5 text-xs text-fg outline-none focus:border-accent/50">
                   <option value="" disabled>Choose warehouse location</option>

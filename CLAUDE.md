@@ -160,8 +160,8 @@ rul_ratio         = rul_h / shelf_life_ref_hours
 - Back-fill: batch age starts at `received_at`. Telemetry before receipt is ignored.
 
 ### Calibration (placeholders, to be tuned and justified in the paper)
-- Chicken breast: `t_ref_c = 4`, `q10 = 2.5`, `shelf_life_ref_hours` set in `data/products.yaml` (**placeholder, confirm against the chosen source**).
-- Sanity check target from Herron et al. (2022): a 24 h cyclic abuse (2 h at 4 C, 2 h at about 23 C) reduced shelf life by about 2.25 days (APC) and 1.5 days (PSY). With `q10 = 2.5`, the model loses about 2.3 days, in the right range. Encode this as a unit test with a tolerance band, and record the exact tolerance in the test.
+- Products (chicken breast, fresh milk, tomato-based dish) are fitted from the synthetic `data/shelf_life_by_temperature.csv`: chicken `t_ref_c = 4`, `q10 = 2.97`, `shelf_life_ref_hours = 168`. `tests/test_dataset_fit.py` keeps the config within 10% of the data.
+- Sanity check target from Herron et al. (2022): a 24 h cyclic abuse (2 h at 4 C, 2 h at about 23 C) reduced shelf life by about 2.25 days (APC) and 1.5 days (PSY). With `q10 = 2.5`, the model loses about 2.3 days, in the right range (the unit test uses 2.5; the dataset's 2.97 loses about 3.5 days). Encode this as a unit test with a tolerance band, and record the exact tolerance in the test.
 - Danger-zone flag: any reading above 4 C is flagged, matching the paper's definition. Risk-of-loss threshold: RUL below 4 days (Herron et al.).
 
 ### Required unit tests
@@ -304,6 +304,6 @@ Metrics: units spoiled before sale, units sold past true safe life (food-safety 
 
 ## Open items (confirm before treating as final)
 
-- Chicken `shelf_life_ref_hours`, `q10`, and humidity handling are placeholders. Cite a source or calibrate against Herron et al. before the defense.
+- Product parameters come from a synthetic, LLM-generated dataset; state this in the paper. The chicken fit is harsher than Herron et al. (about 3.5 vs 1.5-2.25 days lost on cyclic abuse). Humidity handling is still a placeholder.
 - Chapter 1 says "multi-sensor" but scope limits sensing to temperature and humidity. Consider "multi-parameter" wording in the paper.
 - Final discount tier percentages and thresholds are defaults, to be agreed with the team and the adviser.

@@ -33,7 +33,8 @@ def test_constant_reference_ages_linearly():
 def test_herron_cyclic_abuse_band():
     # 24 h: alternating 2 h at 4 C and 2 h at 23 C, 15-min readings.
     # Tolerance: extra shelf-life loss vs. 24 h at 4 C must be 1.5..3.0 days
-    # (Herron et al. 2022 report ~1.5 d PSY, ~2.25 d APC).
+    # (Herron et al. 2022 report ~1.5 d PSY, ~2.25 d APC). Uses the literature q10 2.5, not products.yaml:
+    # the synthetic dataset fit (q10 2.97) loses ~3.5 d on this pattern, harsher than Herron.
     rs = [Reading(T0 + timedelta(minutes=15 * i), 4 if (i // 8) % 2 == 0 else 23, 85) for i in range(97)]
     r = compute_rul(rs, T0, T0 + timedelta(hours=24), P)
     lost_days = (r.effective_age_h - 24) / 24
