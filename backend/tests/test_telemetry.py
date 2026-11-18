@@ -106,3 +106,13 @@ def test_history_default_to_follows_sim_clock(client, seeded, monkeypatch):
     client.post("/api/v1/telemetry", json=payload(seq=1, ts=iso(NOW + timedelta(hours=2))), headers=H)
     r = client.get("/api/v1/telemetry", params={"zone_id": "chiller-a"})
     assert len(r.json()["points"]) == 1
+
+
+def test_history_keeps_the_true_peak(client, seeded):
+    # A short spike must survive downsampling: the bucket average hides it, the bucket max does not.
+    for s, t in enumerate([3.0, 9.0, 3.0]):
+        ts = iso(NOW - timedelta(minutes=30 - s))
+        client.post("/api/v1/telemetry", json=payload(seq=s, temperature_c=t, ts=ts), headers=H)
+    span = {"zone_id": "chiller-a", "from": iso(NOW - timedelta(days=10)), "to": iso(NOW)}
+    (p,) = client.get("/api/v1/telemetry", params=span).json()["points"]
+    assert p["temperature_max_c"] == 9.0 and p["temperature_c"] == pytest.approx(5.0)

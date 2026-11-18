@@ -562,6 +562,8 @@ export interface components {
             temperature_c: number;
             /** Humidity Pct */
             humidity_pct: number;
+            /** Temperature Max C */
+            temperature_max_c: number;
         };
         /** ProductConfig */
         ProductConfig: {

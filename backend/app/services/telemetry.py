@@ -58,9 +58,14 @@ def history(db: Session, zone_id: str, start: datetime, end: datetime) -> Histor
     width = max(1, math.ceil((end - start).total_seconds() / MAX_POINTS))
     b = func.time_bucket(timedelta(seconds=width), Telemetry.ts).label("b")
     rows = db.execute(
-        select(b, func.avg(Telemetry.temperature_c), func.avg(Telemetry.humidity_pct))
+        select(
+            b, func.avg(Telemetry.temperature_c), func.avg(Telemetry.humidity_pct), func.max(Telemetry.temperature_c)
+        )
         .where(Telemetry.zone_id == zone_id, Telemetry.ts >= start, Telemetry.ts <= end)
         .group_by(b)
         .order_by(b)
     ).all()
-    return HistoryOut(zone_id=zone_id, points=[Point(ts=r[0], temperature_c=r[1], humidity_pct=r[2]) for r in rows])
+    return HistoryOut(
+        zone_id=zone_id,
+        points=[Point(ts=r[0], temperature_c=r[1], humidity_pct=r[2], temperature_max_c=r[3]) for r in rows],
+    )
