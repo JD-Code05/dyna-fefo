@@ -646,16 +646,18 @@ function RealtimeSensorGraph({ sensor }: { sensor: SensorRecord }) {
   }
 
   const readings = metric === 'temperature' ? temperatureReadings : humidityReadings
-  const limit = metric === 'temperature' ? 4 : 90
+  // Humidity has no limit: it is simulated and no shelf-life data covers it.
+  const limit = metric === 'temperature' ? 4 : null
   const unit = metric === 'temperature' ? '°C' : '% RH'
-  const min = Math.min(...readings, limit) - (metric === 'temperature' ? 0.25 : 2)
-  const max = Math.max(...readings, limit) + (metric === 'temperature' ? 0.25 : 2)
+  const bounds = limit == null ? readings : [...readings, limit]
+  const min = Math.min(...bounds) - (metric === 'temperature' ? 0.25 : 2)
+  const max = Math.max(...bounds) + (metric === 'temperature' ? 0.25 : 2)
   const y = (value: number) => 62 - ((value - min) / (max - min)) * 50
   const points = readings
     .map((value, index) => `${8 + (index / (readings.length - 1)) * 244},${y(value)}`)
     .join(' ')
   const latest = readings.at(-1) ?? 0
-  const warning = latest > limit
+  const warning = limit != null && latest > limit
   const graphColor = warning
     ? 'var(--color-danger)'
     : metric === 'temperature'
@@ -689,18 +691,32 @@ function RealtimeSensorGraph({ sensor }: { sensor: SensorRecord }) {
           {latest.toFixed(1)}{unit}
         </span>
       </div>
-      <svg viewBox="0 0 260 70" preserveAspectRatio="none" className="mt-2 h-[64px] w-full" role="img" aria-label={`Live ${metric} graph for ${sensor.name}, currently ${latest.toFixed(1)} ${unit}`}>
-        {[12, 37, 62].map((lineY) => (
-          <line key={lineY} x1="8" y1={lineY} x2="252" y2={lineY} stroke="var(--color-line)" strokeWidth="1" />
-        ))}
-        <line x1="8" y1={y(limit)} x2="252" y2={y(limit)} stroke="var(--color-danger)" strokeWidth="1" strokeDasharray="4 4" opacity="0.55" />
-        <polygon points={`8,62 ${points} 252,62`} fill={graphColor} opacity="0.08" />
-        <polyline points={points} fill="none" stroke={graphColor} strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" />
-        <circle cx="252" cy={y(latest)} r="3" fill={graphColor} />
-        <text x="250" y={Math.max(8, y(limit) - 4)} textAnchor="end" className="fill-danger font-mono text-xs">
-          {metric === 'temperature' ? '4°C LIMIT' : '90% LIMIT'}
-        </text>
-      </svg>
+      {/* The svg stretches to the card's width, so strokes keep their thickness and the dot and label sit outside it as HTML. */}
+      <div className="relative mt-2 h-[64px]">
+        <svg viewBox="0 0 260 70" preserveAspectRatio="none" className="h-full w-full" role="img" aria-label={`Live ${metric} graph for ${sensor.name}, currently ${latest.toFixed(1)} ${unit}`}>
+          {[12, 37, 62].map((lineY) => (
+            <line key={lineY} x1="8" y1={lineY} x2="252" y2={lineY} stroke="var(--color-line)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+          ))}
+          {limit != null && (
+            <line x1="8" y1={y(limit)} x2="252" y2={y(limit)} stroke="var(--color-danger)" strokeWidth="1" strokeDasharray="4 4" opacity="0.55" vectorEffect="non-scaling-stroke" />
+          )}
+          <polygon points={`8,62 ${points} 252,62`} fill={graphColor} opacity="0.08" />
+          <polyline points={points} fill="none" stroke={graphColor} strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        </svg>
+        <span
+          aria-hidden="true"
+          className="absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{ left: `${(252 / 260) * 100}%`, top: `${(y(latest) / 70) * 100}%`, background: graphColor }}
+        />
+        {limit != null && (
+          <span
+            className="absolute -translate-y-full font-mono text-xs text-danger"
+            style={{ right: `${(10 / 260) * 100}%`, top: `${(Math.max(12, y(limit) - 2) / 70) * 100}%` }}
+          >
+            {limit}°C LIMIT
+          </span>
+        )}
+      </div>
     </div>
   )
 }
