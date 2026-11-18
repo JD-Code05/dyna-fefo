@@ -76,6 +76,8 @@ services:
       SIM_SPEEDUP: ${SIM_SPEEDUP:-1}
       DEVICE_ID: esp32-chiller-01
       ZONE_ID: chiller-a
+      BASE_TEMP_C: 2 # chicken: PNS/BAFS 103:2016 poultry chillers 0-4 C
+      BASE_HUMIDITY_PCT: 88 # simulated, display only
     depends_on:
       mqtt:
         condition: service_healthy
@@ -91,6 +93,25 @@ services:
       SIM_SPEEDUP: ${SIM_SPEEDUP:-1}
       DEVICE_ID: esp32-chiller-02
       ZONE_ID: chiller-b
+      BASE_TEMP_C: 3.5 # milk: PNS/BAFS 210:2017 not more than 4 C
+      BASE_HUMIDITY_PCT: 80 # simulated, display only
+    depends_on:
+      mqtt:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+  simulator-c:
+    build: ./simulator
+    restart: unless-stopped
+    environment:
+      MQTT_HOST: mqtt
+      SCENARIO: ${SCENARIO_C:-normal}
+      SIM_SPEEDUP: ${SIM_SPEEDUP:-1}
+      DEVICE_ID: esp32-chiller-03
+      ZONE_ID: chiller-c
+      BASE_TEMP_C: 3 # tomato dish (ready-to-eat): no BAFS standard; US FDA Food Code 5 C
+      BASE_HUMIDITY_PCT: 75 # simulated, display only
     depends_on:
       mqtt:
         condition: service_healthy
