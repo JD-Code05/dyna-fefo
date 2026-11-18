@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
   ArrowRight,
@@ -17,7 +17,7 @@ import {
   X,
 } from 'lucide-react'
 import { api, type Schemas } from '../api/client'
-import { useInventory, type SensorRecord, type StockRecord, type StockUpdate, type ZoneHistory } from '../data/InventoryContext'
+import { useInventory, type SensorRecord, type StockRecord, type StockUpdate } from '../data/InventoryContext'
 import ChillerMap from './ChillerMap'
 import DoneAnimation from './DoneAnimation'
 import ShelfLifeComparisonBar from './ShelfLifeComparisonBar'
@@ -29,9 +29,8 @@ const fmtDate = (iso: string | null) =>
 const fmtDay = (iso: string) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
 const errorText = (e: unknown) => (e as { message?: string }).message ?? 'Unable to save. Check the backend is running and try again.'
 
-/** The zone with the most readings, so charts show the sensor that is actually reporting. */
-const busiestZone = (histories: ZoneHistory[]) =>
-  [...histories].sort((a, b) => b.points.length - a.points.length)[0]
+/** `chiller-b` -> "Chiller B", the same rule the chiller map uses. */
+const zoneName = (zone: string) => zone.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 
 export function ManagerDecisionsCard({ onOpenQueue }: { onOpenQueue: () => void }) {
   const { recommendations, decide } = useInventory()
@@ -76,14 +75,17 @@ export function ManagerDecisionsCard({ onOpenQueue }: { onOpenQueue: () => void 
   )
 }
 
-function ViewHeading({ eyebrow, title, detail }: { eyebrow: string; title: string; detail: string }) {
+function ViewHeading({ eyebrow, title, detail, action }: { eyebrow: string; title: string; detail: string; action?: ReactNode }) {
   return (
     <header className="flex min-h-[64px] shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-1 rounded-[14px] border border-line bg-surface px-5 py-2">
       <div>
         <p className="text-xs font-semibold text-muted">{eyebrow}</p>
         <h2 className="mt-1 text-base font-bold tracking-[-0.02em] text-fg">{title}</h2>
       </div>
-      <p className="max-w-[480px] text-right text-xs leading-relaxed text-muted">{detail}</p>
+      <div className="flex flex-wrap items-center justify-end gap-x-6 gap-y-1">
+        <p className="max-w-[480px] text-right text-xs leading-relaxed text-muted">{detail}</p>
+        {action}
+      </div>
     </header>
   )
 }
@@ -203,23 +205,38 @@ function ExpirationChart() {
 
 export function AnalyticsView() {
   const { histories } = useInventory()
-  const zone = busiestZone(histories)
+  const [picked, setPicked] = useState<string | null>(null)
+  // Until someone picks, show the first chiller that is actually reporting.
+  const zone = histories.find((h) => h.zone_id === picked) ?? histories.find((h) => h.points.length) ?? histories[0]
   const points = zone?.points ?? []
+  const name = zone ? zoneName(zone.zone_id) : 'No zone'
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       <ViewHeading
         eyebrow="Warehouse analytics"
         title="Shelf-life and environment"
-        detail={`Printed versus sensor-estimated expiration for every batch, and the last hour of readings${zone ? ` from ${zone.zone_id}` : ''}.`}
+        detail={`Printed versus sensor-estimated expiration for every batch, and the last hour of readings${zone ? ` from ${name}` : ''}.`}
+        action={
+          histories.length > 0 && (
+            <label className="flex items-center gap-2 text-xs font-semibold text-muted">
+              Chiller
+              <select value={zone?.zone_id ?? ''} onChange={(event) => setPicked(event.target.value)} className="h-8 rounded-lg border border-line bg-night px-2.5 text-xs text-fg outline-none focus:border-accent/50">
+                {histories.map((h) => (
+                  <option key={h.zone_id} value={h.zone_id}>{zoneName(h.zone_id)}</option>
+                ))}
+              </select>
+            </label>
+          )
+        }
       />
       {/* Stacked below lg; the charts keep fixed heights there because they size themselves to their box. */}
       <div className="grid gap-3 lg:grid-cols-2 xl:min-h-0 xl:flex-1 xl:grid-rows-2">
         <div className="h-[480px] min-h-0 lg:row-span-2 lg:h-auto">
           <ExpirationChart />
         </div>
-        <TrendCard title="Temperature over time" hint={`${zone?.zone_id ?? 'No zone'} · last hour`} points={points.map((p) => ({ ts: p.ts, value: p.temperature_c }))} color="var(--color-series)" unit="°C" threshold={{ value: 4, label: '4°C limit' }} />
-        <TrendCard title="Humidity over time" hint={`${zone?.zone_id ?? 'No zone'} · last hour`} points={points.map((p) => ({ ts: p.ts, value: p.humidity_pct }))} color="var(--color-muted)" unit="% RH" />
+        <TrendCard title="Temperature over time" hint={`${name} · last hour`} points={points.map((p) => ({ ts: p.ts, value: p.temperature_c }))} color="var(--color-series)" unit="°C" threshold={{ value: 4, label: '4°C limit' }} />
+        <TrendCard title="Humidity over time" hint={`${name} · last hour`} points={points.map((p) => ({ ts: p.ts, value: p.humidity_pct }))} color="var(--color-muted)" unit="% RH" />
       </div>
     </div>
   )
