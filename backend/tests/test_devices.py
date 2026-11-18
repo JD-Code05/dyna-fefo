@@ -1,9 +1,9 @@
 def test_create_device_returns_key_once_and_audits(client, seeded):
-    r = client.post("/api/v1/devices", json={"id": "esp32-chiller-03", "name": "Probe 3", "zone_id": "chiller-a"})
+    r = client.post("/api/v1/devices", json={"id": "esp32-chiller-09", "name": "Probe 3", "zone_id": "chiller-a"})
     assert r.status_code == 201 and r.json()["api_key"]
     assert "api_key" not in client.get("/api/v1/devices").json()["items"][0]
     log = client.get("/api/v1/audit-log?entity=device").json()["items"][0]
-    assert (log["action"], log["entity_id"], log["user"]) == ("create", "esp32-chiller-03", "demo-supervisor")
+    assert (log["action"], log["entity_id"], log["user"]) == ("create", "esp32-chiller-09", "demo-supervisor")
 
 
 def test_patch_device_audits_only_changes(client, seeded):

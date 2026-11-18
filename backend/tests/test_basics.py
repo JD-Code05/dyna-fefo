@@ -71,8 +71,15 @@ def test_seed_is_idempotent(db):
     seed(db)
     seed(db)
     assert db.query(Batch).count() == 9
-    assert db.query(Device).count() == 2
-    assert db.query(Zone).count() == 2
+    assert db.query(Device).count() == 3
+    assert db.query(Zone).count() == 3
+
+
+def test_seed_puts_each_product_in_its_own_chiller(db, seeded):
+    from app.db.models import Batch
+
+    zones = {(b.product_id, b.zone_id) for b in db.query(Batch).all()}
+    assert zones == {("chicken-breast", "chiller-a"), ("fresh-milk", "chiller-b"), ("tomato-dish", "chiller-c")}
 
 
 def test_require_role_forbids_staff():

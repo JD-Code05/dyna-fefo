@@ -9,23 +9,25 @@ from app.core.products import load_products
 from app.db.models import Batch, Device, Product, Role, User, Zone
 from app.db.session import SessionLocal
 
-ZONES = [("chiller-a", "Chiller A"), ("chiller-b", "Chiller B")]
+# One chiller per product: raw chicken never shares a room with the ready-to-eat dish.
+ZONES = [("chiller-a", "Chiller A"), ("chiller-b", "Chiller B"), ("chiller-c", "Chiller C")]
 # dev-only keys, documented in .env.example
 DEVICES = [
     ("esp32-chiller-01", "Chiller A Probe 01", "chiller-a", "dev-key-01"),
     ("esp32-chiller-02", "Chiller B Probe 02", "chiller-b", "dev-key-02"),
+    ("esp32-chiller-03", "Chiller C Probe 03", "chiller-c", "dev-key-03"),
 ]
 # (code, product, zone, age_h, quantity). Ages are picked so a fresh demo shows each outcome.
 BATCHES = [
     ("CHK-001", "chicken-breast", "chiller-a", 8, 40),
     ("CHK-002", "chicken-breast", "chiller-a", 50, 30),
-    ("CHK-003", "chicken-breast", "chiller-b", 105, 25),  # 38% left -> dispatch
-    ("CHK-004", "chicken-breast", "chiller-b", 147, 20),  # 12% left -> dispatch
-    ("CHK-005", "chicken-breast", "chiller-b", 158, 15),  # 6% left -> salvage
-    ("MLK-001", "fresh-milk", "chiller-a", 60, 20),
+    ("CHK-003", "chicken-breast", "chiller-a", 105, 25),  # 38% left -> dispatch
+    ("CHK-004", "chicken-breast", "chiller-a", 147, 20),  # 12% left -> dispatch
+    ("CHK-005", "chicken-breast", "chiller-a", 158, 15),  # 6% left -> salvage
+    ("MLK-001", "fresh-milk", "chiller-b", 60, 20),
     ("MLK-002", "fresh-milk", "chiller-b", 140, 15),  # 40% left -> dispatch
-    ("TOM-001", "tomato-dish", "chiller-a", 30, 12),
-    ("TOM-002", "tomato-dish", "chiller-b", 122, 10),  # 7% left -> salvage
+    ("TOM-001", "tomato-dish", "chiller-c", 30, 12),
+    ("TOM-002", "tomato-dish", "chiller-c", 122, 10),  # 7% left -> salvage
 ]
 
 
