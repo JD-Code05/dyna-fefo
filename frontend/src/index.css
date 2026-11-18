@@ -265,7 +265,9 @@ body {
 .cm-pin-quiet { background: transparent; border-color: transparent; color: var(--color-muted); font-family: var(--font-sans); font-weight: 500; }
 .cm-pin-more { color: var(--color-muted); font-family: var(--font-sans); font-weight: 500; }
 /* Too small for floating labels: the sensor rows below carry the detail. */
-@container (max-width: 520px) { .cm-pin-batch-ok, .cm-pin-batch-warn, .cm-pin-batch-danger, .cm-pin-quiet, .cm-pin-more { display: none; } }
+/* Batch codes crowd each other below ~1000px with 6 pallets per room; the sensor cards carry the detail there. */
+@container (max-width: 1000px) { .cm-pin-batch-ok, .cm-pin-batch-warn, .cm-pin-batch-danger { display: none; } }
+@container (max-width: 520px) { .cm-pin-quiet, .cm-pin-more { display: none; } }
 @keyframes cm-ping { from { transform: scale(0.3); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
 @keyframes cm-blink { 50% { opacity: 0.35; } }
 @keyframes cm-flow { to { stroke-dashoffset: -9; } }

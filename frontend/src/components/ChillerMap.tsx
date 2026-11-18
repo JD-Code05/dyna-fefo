@@ -12,7 +12,8 @@ const VIEW_X = -60
 const VIEW_Y = -50
 const VIEW_H = 160
 // Front slots first: the most urgent batch gets the place nothing can stand in front of.
-const SLOTS: [number, number][] = [[38, 40], [10, 40], [38, 14], [10, 14]]
+// 3 columns x 2 rows: 16-wide pallets 2 apart, clear of the rack (y < 8) and the door (x = 0).
+const SLOTS: [number, number][] = [[42, 40], [24, 40], [42, 14], [6, 40], [24, 14], [6, 14]]
 
 const COS = Math.cos(Math.PI / 6)
 const project = ([x, y, z]: Pt): [number, number] => [(x - y) * COS, (x + y) / 2 - z]
