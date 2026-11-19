@@ -478,7 +478,7 @@ function Row({
         <Sparkline batch={b} />
         <div className="font-mono text-xs leading-[1.45]">
           <p className="text-muted">
-            Avg <span className="font-semibold text-fg/90">{b.series.length ? `${b.avgTemp.toFixed(1)}°C` : '—'}</span>
+            Avg <span className="font-semibold text-fg/90">{b.stay.avgTemp == null ? '—' : `${b.stay.avgTemp.toFixed(1)}°C`}</span>
           </p>
           <p className="text-muted">
             Peak{' '}
@@ -487,9 +487,15 @@ function Row({
                 b.breach === 'critical' ? 'text-danger' : b.breach === 'spike' ? 'text-warn' : 'text-fg/90'
               }`}
             >
-              {b.series.length ? `${b.peakTemp.toFixed(1)}°C` : '—'}
+              {b.stay.peakTemp == null ? '—' : `${b.stay.peakTemp.toFixed(1)}°C`}
             </span>
           </p>
+          {/* Short so it stays on one line in this narrow column; the Shelf-life card has the full wording. */}
+          {b.stay.unreadHours >= 1 && (
+            <p className="whitespace-nowrap text-muted/70" title={`No readings for ${b.stay.unreadHours}h; the shelf-life estimate assumes 4 °C for them`}>
+              {b.stay.unreadHours}h unread
+            </p>
+          )}
         </div>
       </div>
 
@@ -569,7 +575,8 @@ function Row({
 function Sparkline({ batch }: { batch: StockRecord }) {
   const W = 72
   const H = 30
-  const series = batch.series
+  // The whole stay, not the last hour; the colour still follows the last-hour breach.
+  const series = batch.stay.series
   if (series.length < 2) return <span className="w-[72px] shrink-0 font-mono text-xs text-muted">No readings</span>
   const y = (t: number) => H - 3 - (Math.min(Math.max(t, 0), 10) / 10) * (H - 6)
   const x = (i: number) => (i / (series.length - 1)) * W
