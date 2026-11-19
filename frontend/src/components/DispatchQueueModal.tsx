@@ -576,7 +576,8 @@ function Sparkline({ batch }: { batch: StockRecord }) {
   const W = 72
   const H = 30
   // The whole stay, not the last hour; the colour still follows the last-hour breach.
-  const series = batch.stay.series
+  // Right after a reset the stay has under 2 downsampled points (~19 min buckets), so show the last hour until it does.
+  const series = batch.stay.series.length >= 2 ? batch.stay.series : batch.series
   if (series.length < 2) return <span className="w-[72px] shrink-0 font-mono text-xs text-muted">No readings</span>
   const y = (t: number) => H - 3 - (Math.min(Math.max(t, 0), 10) / 10) * (H - 6)
   const x = (i: number) => (i / (series.length - 1)) * W
