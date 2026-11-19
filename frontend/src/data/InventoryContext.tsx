@@ -295,8 +295,12 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   }, [refresh])
 
   // Every write refetches, so the screens always show what the backend stored.
+  // A write can add or move a batch, so the since-arrival history is refetched too instead of waiting up to 60 s.
   const write = (path: string, method: string, body?: unknown) =>
-    api<unknown>(path, { method, body: body === undefined ? undefined : JSON.stringify(body) }).then(refresh)
+    api<unknown>(path, { method, body: body === undefined ? undefined : JSON.stringify(body) }).then(() => {
+      stayRef.current.at = 0
+      return refresh()
+    })
 
   const value: InventoryContextValue = {
     sensors,
