@@ -1,12 +1,13 @@
 import json
-from datetime import timedelta
+import math
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from conftest import NOW, NOW_ISO, iso
 
 from app.core.config import get_settings
 from app.db.models import Device, Telemetry
-from app.services.telemetry import handle_message
+from app.services.telemetry import MAX_POINTS, handle_message
 
 
 def payload(seq=1, **kw):
@@ -110,8 +111,13 @@ def test_history_default_to_follows_sim_clock(client, seeded, monkeypatch):
 
 def test_history_keeps_the_true_peak(client, seeded):
     # A short spike must survive downsampling: the bucket average hides it, the bucket max does not.
+    # NOW follows the wall clock, so start one minute into a bucket (time_bucket's default origin is
+    # 2000-01-03 UTC); otherwise a bucket edge can split the three readings and the test flakes.
+    width = math.ceil(timedelta(days=10).total_seconds() / MAX_POINTS)
+    origin = datetime(2000, 1, 3, tzinfo=UTC)
+    start = origin + timedelta(seconds=(NOW - timedelta(hours=2) - origin).total_seconds() // width * width + 60)
     for s, t in enumerate([3.0, 9.0, 3.0]):
-        ts = iso(NOW - timedelta(minutes=30 - s))
+        ts = iso(start + timedelta(minutes=s))
         client.post("/api/v1/telemetry", json=payload(seq=s, temperature_c=t, ts=ts), headers=H)
     span = {"zone_id": "chiller-a", "from": iso(NOW - timedelta(days=10)), "to": iso(NOW)}
     (p,) = client.get("/api/v1/telemetry", params=span).json()["points"]
