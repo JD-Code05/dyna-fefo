@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { api, type Schemas } from '../api/client'
 import type { Action, Breach } from './dispatch'
 
@@ -13,6 +13,7 @@ const POLL_MS = 5000
 const DANGER_C = 4 // CLAUDE.md: any reading above 4 °C is flagged
 const HOUR = 3_600_000
 const HISTORY_MS = HOUR // one hour keeps one point per reading, so charts move every poll
+const STAY_POLL_MS = 60_000 // since-arrival history is long and changes slowly: refetch once a minute, not every poll
 
 export type SensorRecord = {
   key: string
@@ -37,9 +38,18 @@ export type StockRecord = {
   peakTemp: number
   /** Index of the reading where the peak occurred, within `series`. */
   peakAt: number
-  /** Zone temperatures over the last 24 h, oldest first. */
+  /** Zone temperatures over the last hour, oldest first. Drives `breach`. */
   series: number[]
   breach: Breach
+  /** The batch's whole stay in its zone (active batches only). Information only: `breach` stays on the last hour. */
+  stay: {
+    avgTemp: number | null
+    /** True peak: highest raw reading, not a bucket average. */
+    peakTemp: number | null
+    series: number[]
+    /** Hours from arrival to the first reading; the shelf-life engine assumes 4 °C for them. */
+    unreadHours: number
+  }
   staticHours: number
   dynamicHours: number
   /** Hours of life lost to heat: effective age minus time actually stored. */
@@ -129,6 +139,7 @@ function toStock(
   rec: Recommendation | null,
   order: Recommendation | null,
   flagged: Recommendation | null,
+  stayPoints: ZoneHistory['points'],
 ): StockRecord {
   // Shelf-life clock: the zone's simulated time when SIM_SPEEDUP runs ahead of the wall clock.
   const now = b.predicted_expiry && b.rul_h != null ? new Date(b.predicted_expiry).getTime() - b.rul_h * HOUR : Date.now()
@@ -139,6 +150,15 @@ function toStock(
   const labelH = Math.max(1, (Date.parse(b.printed_expiry) - Date.parse(b.received_at)) / HOUR)
   const lostHours = Math.round(Math.max(0, (b.effective_age_h ?? elapsedH) - elapsedH))
   const latest = series.at(-1) ?? 0
+  const received = Date.parse(b.received_at)
+  const mine = b.status === 'active' ? stayPoints.filter((p) => Date.parse(p.ts) >= received) : []
+  const stay: StockRecord['stay'] = {
+    avgTemp: mine.length ? mine.reduce((s, p) => s + p.temperature_c, 0) / mine.length : null,
+    peakTemp: mine.length ? Math.max(...mine.map((p) => p.temperature_max_c)) : null,
+    series: mine.map((p) => p.temperature_c),
+    // No readings at all: the whole stay so far is unread.
+    unreadHours: b.status === 'active' ? Math.max(0, Math.round(((mine[0] ? Date.parse(mine[0].ts) : now) - received) / HOUR)) : 0,
+  }
   return {
     key: String(b.id),
     id: b.code,
@@ -150,6 +170,7 @@ function toStock(
     peakAt: series.indexOf(peak),
     series,
     breach: latest > DANGER_C ? 'critical' : peak > DANGER_C ? 'spike' : null,
+    stay,
     staticHours: Math.max(0, hoursUntil(b.printed_expiry, now)),
     // Until the worker's first run (about 30 s after start) there is no RUL yet: show the printed life, not a total loss.
     dynamicHours: b.rul_h == null ? Math.max(0, hoursUntil(b.printed_expiry, now)) : Math.round(b.rul_h),
@@ -191,6 +212,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<{ id: string; name: string }[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
+  const stayRef = useRef<{ at: number; byZone: Map<string, ZoneHistory['points']> }>({ at: 0, byZone: new Map() })
 
   const refresh = useCallback(async () => {
     try {
@@ -214,6 +236,18 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
         }),
       )
       const series = new Map(histories.map((h) => [h.zone_id, h.points.map((p) => p.temperature_c)]))
+      if (Date.now() - stayRef.current.at >= STAY_POLL_MS) {
+        // One downsampled request per zone, from its oldest active batch's arrival to the zone's latest reading.
+        const stays = await Promise.all(
+          zones.items.map(async (z): Promise<[string, ZoneHistory['points']]> => {
+            const arrivals = batches.items.filter((b) => b.zone_id === z.id && b.status === 'active').map((b) => Date.parse(b.received_at))
+            if (!z.latest || !arrivals.length) return [z.id, []]
+            const q = new URLSearchParams({ zone_id: z.id, from: new Date(Math.min(...arrivals)).toISOString(), to: z.latest.ts })
+            return [z.id, (await api<ZoneHistory>(`/telemetry?${q}`)).points]
+          }),
+        )
+        stayRef.current = { at: Date.now(), byZone: new Map(stays) }
+      }
       // Most urgent pending recommendation per batch: SALVAGE outranks PRIORITY_DISPATCH.
       const recFor = new Map<number, Recommendation>()
       for (const r of recs.items) {
@@ -229,6 +263,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
           recFor.get(b.id) ?? null,
           orderFor.get(b.id) ?? null,
           flaggedRecs.items.find((r) => r.batch_id === b.id) ?? null, // newest first
+          stayRef.current.byZone.get(b.zone_id) ?? [],
         ),
       )
       const stockById = new Map(nextStocks.map((s) => [s.key, s]))
@@ -260,8 +295,12 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   }, [refresh])
 
   // Every write refetches, so the screens always show what the backend stored.
+  // A write can add or move a batch, so the since-arrival history is refetched too instead of waiting up to 60 s.
   const write = (path: string, method: string, body?: unknown) =>
-    api<unknown>(path, { method, body: body === undefined ? undefined : JSON.stringify(body) }).then(refresh)
+    api<unknown>(path, { method, body: body === undefined ? undefined : JSON.stringify(body) }).then(() => {
+      stayRef.current.at = 0
+      return refresh()
+    })
 
   const value: InventoryContextValue = {
     sensors,

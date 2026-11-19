@@ -166,12 +166,15 @@ export default function ShelfLifeCard() {
                   value={`${selected.lostHours}h`}
                   tone="text-danger"
                 />
-                <DetailRow label="Average temp" value={selected.series.length ? `${selected.avgTemp.toFixed(1)}°C` : '—'} />
+                <DetailRow label="Average temp (since arrival)" value={selected.stay.avgTemp == null ? '—' : `${selected.stay.avgTemp.toFixed(1)}°C`} />
                 <DetailRow
-                  label="Peak exposure"
-                  value={selected.series.length ? `${selected.peakTemp.toFixed(1)}°C` : '—'}
+                  label="Peak exposure (since arrival)"
+                  value={selected.stay.peakTemp == null ? '—' : `${selected.stay.peakTemp.toFixed(1)}°C`}
                   tone={selected.breach ? 'text-danger' : 'text-fg'}
                 />
+                {selected.stay.unreadHours >= 1 && (
+                  <DetailRow label="No readings" value={`${selected.stay.unreadHours}h, assumed 4 °C`} tone="text-muted" />
+                )}
               </div>
             </div>
           ) : (

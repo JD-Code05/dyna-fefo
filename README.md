@@ -50,7 +50,7 @@ The approach follows Herron et al. (2022), Buisman et al. (2019), Haijema et al.
 
 **In scope**
 - Temperature and humidity sensing, using a simulator that sends the same payload as the future ESP32
-- Primary product: fresh chicken breast. Chilled fish is optional and needs only config changes
+- Products: fresh chicken breast, fresh milk and a tomato-based dish, each in its own chiller (A, B, C)
 - Labeled synthetic retail reviews for NLP
 - Two roles: `staff` (read-only) and `supervisor` (can approve and reject)
 
@@ -61,7 +61,8 @@ The approach follows Herron et al. (2022), Buisman et al. (2019), Haijema et al.
 - Price changes applied automatically
 
 **Limitations**
-- RUL parameters are placeholders until they are calibrated against Herron et al. (2022)
+- Shelf-life parameters are fitted to a synthetic, LLM-generated dataset, not to field data
+- Humidity is simulated and does not affect shelf life
 - Evaluation results come from simulation, not field trials
 
 ## System Architecture
@@ -147,10 +148,11 @@ docker compose run --rm api python -m app.db.seed
 
 ### Simulator scenarios
 ```bash
-SCENARIO=ltl_abuse SIM_SPEEDUP=60 docker compose up simulator      # Chiller A
-SCENARIO_B=ltl_abuse SIM_SPEEDUP=60 docker compose up simulator-b  # Chiller B
+SCENARIO=ltl_abuse SIM_SPEEDUP=60 docker compose up simulator      # Chiller A (chicken)
+SCENARIO_B=ltl_abuse SIM_SPEEDUP=60 docker compose up simulator-b  # Chiller B (milk)
+SCENARIO_C=ltl_abuse SIM_SPEEDUP=60 docker compose up simulator-c  # Chiller C (tomato dish)
 ```
-Scenarios: `normal`, `door_open`, `compressor_failure`, `ltl_abuse`, `recover`. `SIM_SPEEDUP` moves virtual time forward faster, so decay shows up within minutes.
+Scenarios: `normal`, `door_open`, `compressor_failure`, `ltl_abuse`, `recover`. `SIM_SPEEDUP` moves virtual time forward faster, so decay shows up within minutes. Each simulator's normal temperature and humidity come from `BASE_TEMP_C` and `BASE_HUMIDITY_PCT` in `docker-compose.yml`. After any sped-up run, reset the demo with `docker compose --profile ui down -v` (this wipes readings, decisions and history).
 
 ### Tests
 ```bash
@@ -190,6 +192,18 @@ rul_ratio        = rul_h / shelf_life_ref_hours
 ```
 
 Products and their parameters come from `data/shelf_life_by_temperature.csv`, a **synthetic** dataset the team generated with an LLM from the research paper (fresh chicken breast: 168 h at 4 °C, `q10 = 2.97`; fresh milk: 235 h, 2.46; tomato-based dish: 131 h, 1.98). `tests/test_dataset_fit.py` checks the model stays within 10% of the dataset at every temperature. On Herron et al. (2022) cyclic abuse (2 h at 4 °C, then 2 h at about 23 °C) the chicken parameters lose about 3.5 days, more than the 1.5 to 2.25 days Herron measured.
+
+### Chillers and setpoints
+
+The seed has one chiller per product, so raw chicken never shares a room with the ready-to-eat dish. Each chiller has its own simulated sensor. The setpoints come from Philippine National Standards (PDF page numbers); the shelf-life numbers still come only from the synthetic dataset, and every setpoint sits between its 2 °C and 4 °C rows.
+
+| Chiller | Product | Setpoint | Humidity (simulated) | Basis |
+|---|---|---|---|---|
+| A (`esp32-chiller-01`) | Fresh chicken breast | 2 °C | ~88 % | PNS/BAFS 103:2016 §5.8.1.3 (p. 14–15): poultry chillers 0–4 °C. PNS/BAFS 339:2022 §3.3 (p. 4): fresh chilled meat 0–4 °C |
+| B (`esp32-chiller-02`) | Fresh milk | 3.5 °C | ~80 % | PNS/BAFS 210:2017 §7.1b (p. 16): milk chilled to not more than 4 °C; §8.3c (p. 19): transported at 4 °C |
+| C (`esp32-chiller-03`) | Tomato-based dish | 3 °C | ~75 % | No BAFS standard covers ready-to-eat food. US FDA Food Code cold holding at 5 °C (41 °F), to be confirmed before citing |
+
+**Humidity is simulated and does not affect shelf life.** The dataset has no humidity data, so the model ignores it. PNS/BAFS 168:2015 §5.2.1.2.4 (p. 10) asks for temperature and humidity monitoring but gives no limits. The danger line stays at 4 °C for every chiller.
 
 ## Evaluation
 

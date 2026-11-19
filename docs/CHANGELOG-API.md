@@ -2,6 +2,15 @@
 
 Breaking and notable changes to `/api/v1`, newest first. After pulling, regenerate the frontend types: `cd frontend && npm run gen:api`.
 
+## 2026-11-18: one chiller per product
+
+Not breaking; one field added.
+
+- `GET /telemetry` points add `temperature_max_c`: the highest raw reading in each downsampling bucket (`temperature_c` stays the bucket average). Use it for peaks over long ranges, where averaging hides short spikes.
+- The seed has 3 zones and 3 devices: Chiller A (chicken, `esp32-chiller-01`), Chiller B (milk, `esp32-chiller-02`) and the new Chiller C (tomato dish, `esp32-chiller-03`, dev key `dev-key-03`). Each product's batches sit in their own chiller.
+- Simulated setpoints: A 2 °C / 88 %, B 3.5 °C / 80 %, C 3 °C / 75 %. **Humidity is simulated and does not affect shelf life.**
+- A batch's history follows its current `zone_id` (moves between zones are not tracked).
+
 ## 2026-11-06: products from the synthetic dataset
 
 Not breaking; no schema changes.

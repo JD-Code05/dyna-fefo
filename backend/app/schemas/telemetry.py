@@ -27,8 +27,9 @@ class StoredOut(BaseModel):
 
 class Point(BaseModel):
     ts: datetime
-    temperature_c: float
-    humidity_pct: float
+    temperature_c: float  # bucket average
+    humidity_pct: float  # bucket average
+    temperature_max_c: float  # highest raw reading in the bucket, so spikes survive downsampling
 
 
 class HistoryOut(BaseModel):
