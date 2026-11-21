@@ -4,7 +4,7 @@
 
 A decision-support system that replaces static expiry dates with shelf-life estimates computed from temperature and humidity telemetry. A Markov Decision Process (MDP) decides when each batch should be held, sent out first (priority dispatch), or pulled from sale (salvage). A human supervisor approves or rejects every recommendation, and warehouse staff confirm each approved order.
 
-> **Status:** Working prototype, about 87% of planned features done (November 2026). Sensor data comes from a simulator that uses the ESP32 payload format, and the shelf-life data is synthetic.
+> **Status:** Working prototype, about 93% of planned features done (November 2026). Sensors are simulated by design (no physical hardware), and the shelf-life data is synthetic.
 
 ---
 
@@ -50,7 +50,7 @@ The approach follows Herron et al. (2022) for cold-chain shelf-life loss and Bui
 ## Scope and Limitations
 
 **In scope**
-- Temperature and humidity sensing, using a simulator that sends the same payload as the future ESP32
+- Temperature and humidity sensing from a simulator (one per chiller) that uses the ESP32 message format; no physical sensor hardware
 - Products: fresh chicken breast, fresh milk and a tomato-based dish, each in its own chiller (A, B, C)
 - Two roles: `supervisor` (manages batches and sensors, approves or rejects) and `staff` (views the pull list, confirms or flags tasks)
 
@@ -70,7 +70,7 @@ The approach follows Herron et al. (2022) for cold-chain shelf-life loss and Bui
 
 ```mermaid
 flowchart LR
-    SIM[Simulator / ESP32] -- MQTT --> MQ[Mosquitto]
+    SIM[Sensor simulator] -- MQTT --> MQ[Mosquitto]
     MQ --> WK[Worker<br/>subscriber + scheduler]
     SIM -. HTTP fallback .-> API[FastAPI]
     WK --> DB[(PostgreSQL + TimescaleDB)]
@@ -245,6 +245,5 @@ The MDP policy cut lost units by 94.3% compared with static FEFO (paired permuta
 - [x] Supervisor decision flow with audit log, and staff task confirmation
 - [x] Dashboard: overview, stock, analytics, chiller map, decisions, change history, staff view
 - [x] Evaluation script (static FEFO vs. dynamic)
-- [ ] Physical ESP32 sensor
 - [ ] Password login
 - [ ] Push-based live updates (the dashboard polls every 5 seconds today)
