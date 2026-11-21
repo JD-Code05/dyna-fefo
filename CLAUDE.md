@@ -163,7 +163,7 @@ rul_ratio         = rul_h / shelf_life_ref_hours
 - Products (chicken breast, fresh milk, tomato-based dish) are fitted from the synthetic `data/shelf_life_by_temperature.csv`: chicken `t_ref_c = 4`, `q10 = 2.97`, `shelf_life_ref_hours = 168`. `tests/test_dataset_fit.py` keeps the config within 10% of the data.
 - Sanity check target from Herron et al. (2022): a 24 h cyclic abuse (2 h at 4 C, 2 h at about 23 C) reduced shelf life by about 2.25 days (APC) and 1.5 days (PSY). With `q10 = 2.5`, the model loses about 2.3 days, in the right range (the unit test uses 2.5; the dataset's 2.97 loses about 3.5 days). Encode this as a unit test with a tolerance band, and record the exact tolerance in the test.
 - Danger-zone flag: any reading above 4 C is flagged, matching the paper's definition. Risk-of-loss threshold: RUL below 4 days (Herron et al.).
-- One chiller per product in the seed (a layout, not a rule): Chiller A chicken 2 C, B milk 3.5 C, C tomato dish 3 C (`BASE_TEMP_C` per simulator). Sources: PNS/BAFS 103:2016 §5.8.1.3 and 339:2022 §3.3 (chicken, 0-4 C), PNS/BAFS 210:2017 §7.1b/§8.3c (milk, <= 4 C); no BAFS standard for ready-to-eat food (US FDA Food Code 5 C, unconfirmed). See README "Chillers and setpoints".
+- One chiller per product in the seed (a layout, not a rule): Chiller A chicken 2 C, B milk 3.5 C, C tomato dish 3 C (`BASE_TEMP_C` per simulator). Sources: PNS/BAFS 103:2016 §5.8.1.3 and 339:2022 §3.3 (chicken, 0-4 C), PNS/BAFS 210:2017 §7.1b/§8.3c (milk, <= 4 C); no BAFS standard for ready-to-eat food (US FDA Food Code 2022 §3-501.16(A)(2), 5 C, confirmed in the official PDF). See README "Chillers and setpoints".
 - Humidity is simulated display only (A ~88 %, B ~80 %, C ~75 %); it never affects RUL and has no limit line.
 
 ### Required unit tests
@@ -176,7 +176,7 @@ rul_ratio         = rul_h / shelf_life_ref_hours
 
 ## Recommendation engine (`engine/recommend.py`)
 
-Evaluated by the worker after every RUL recompute. Thresholds live in `data/products.yaml` (never hardcode).
+Evaluated by the worker after every RUL recompute. **Since 2026-11-21 the dispatch and salvage lines come from the MDP in `engine/mdp.py`** (solved per product, warm lines when the chiller reads above 4 C; see README "Decision Model (MDP)"). The `products.yaml` ratios below are now only the fixed-rule baseline in `scripts/evaluate.py`. Markdowns and sentiment are out of scope.
 
 | Condition (on `rul_ratio` unless noted) | Recommendation |
 |---|---|
@@ -307,6 +307,5 @@ Metrics: units spoiled before sale, units sold past true safe life (food-safety 
 ## Open items (confirm before treating as final)
 
 - Product parameters come from a synthetic, LLM-generated dataset; state this in the paper. The chicken fit is harsher than Herron et al. (about 3.5 vs 1.5-2.25 days lost on cyclic abuse). Humidity is simulated and has no shelf-life effect (the dataset has no humidity data).
-- The tomato dish's 3 C setpoint cites the US FDA Food Code 5 C limit, not yet read; confirm the clause or find a Philippine source.
 - Chapter 1 says "multi-sensor" but scope limits sensing to temperature and humidity. Consider "multi-parameter" wording in the paper.
 - Final discount tier percentages and thresholds are defaults, to be agreed with the team and the adviser.

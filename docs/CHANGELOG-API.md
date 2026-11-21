@@ -2,6 +2,14 @@
 
 Breaking and notable changes to `/api/v1`, newest first. After pulling, regenerate the frontend types: `cd frontend && npm run gen:api`.
 
+## 2026-11-21: recommendations come from an MDP
+
+Not breaking; two rationale fields added. Recommendation outcomes change.
+
+- Dispatch and salvage lines now come from a Markov Decision Process solved per product (`backend/app/engine/mdp.py`), not the flat 0.50 / 0.10 in `products.yaml`. Chicken: dispatch below 0.19, salvage below 0.15; milk 0.14 / 0.11; tomato dish 0.24 / 0.19. When a chiller's latest reading is above 4 °C the warm lines apply (chicken dispatch below 0.44).
+- `rationale` adds `policy` (`"mdp"`) and `chiller` (`"normal"` or `"warm"`). `rationale.threshold.value` is now the MDP line that was crossed.
+- Seed: CHK-004 is 137 h old and MLK-002 204 h, so a fresh start shows Dispatch on CHK-004 and MLK-002 and Salvage on CHK-005 and TOM-002. CHK-003 is held (no recommendation). Reset with `docker compose --profile ui down -v` to see it.
+
 ## 2026-11-18: one chiller per product
 
 Not breaking; one field added.

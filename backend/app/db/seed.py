@@ -21,11 +21,12 @@ DEVICES = [
 BATCHES = [
     ("CHK-001", "chicken-breast", "chiller-a", 8, 40),
     ("CHK-002", "chicken-breast", "chiller-a", 50, 30),
-    ("CHK-003", "chicken-breast", "chiller-a", 105, 25),  # 38% left -> dispatch
-    ("CHK-004", "chicken-breast", "chiller-a", 147, 20),  # 12% left -> dispatch
+    # Outcomes use the MDP lines at 4 C (chicken dispatch < 0.19, salvage < 0.15; milk 0.14 / 0.11; tomato 0.24 / 0.19)
+    ("CHK-003", "chicken-breast", "chiller-a", 105, 25),  # 38% left -> hold
+    ("CHK-004", "chicken-breast", "chiller-a", 137, 20),  # 18% left -> dispatch for ~6 h, then salvage
     ("CHK-005", "chicken-breast", "chiller-a", 158, 15),  # 6% left -> salvage
     ("MLK-001", "fresh-milk", "chiller-b", 60, 20),
-    ("MLK-002", "fresh-milk", "chiller-b", 140, 15),  # 40% left -> dispatch
+    ("MLK-002", "fresh-milk", "chiller-b", 204, 15),  # 13% left -> dispatch for ~5 h, then salvage
     ("TOM-001", "tomato-dish", "chiller-c", 30, 12),
     ("TOM-002", "tomato-dish", "chiller-c", 122, 10),  # 7% left -> salvage
 ]

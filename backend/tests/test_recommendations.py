@@ -14,8 +14,10 @@ def test_refresh_does_not_duplicate(db, products, aged_batch_with_rec):
 
 
 def test_dispatch_upgrades_to_salvage_in_place(db, products, aged_batch_with_rec):
-    rec_id, batch_id = aged_batch_with_rec  # pending PRIORITY_DISPATCH at ratio 0.125
-    recompute_all(db, products, AGED_NOW + timedelta(hours=10))  # 10 h later: ratio ~0.08
+    rec_id, batch_id = aged_batch_with_rec  # pending PRIORITY_DISPATCH at ratio 0.185
+    recompute_all(
+        db, products, AGED_NOW + timedelta(hours=10)
+    )  # 10 h later: ratio ~0.125, below the MDP salvage line 0.15
     pending = db.query(Recommendation).filter_by(batch_id=batch_id, status="pending").all()
     assert [(r.id, r.type) for r in pending] == [(rec_id, "SALVAGE")]
 
@@ -24,7 +26,8 @@ def test_rationale_and_type(client, aged_batch_with_rec):
     rec_id, _ = aged_batch_with_rec
     item = next(r for r in client.get("/api/v1/recommendations?status=pending").json()["items"] if r["id"] == rec_id)
     assert item["type"] == "PRIORITY_DISPATCH" and item["batch_code"] == "CHK-004" and item["decided_by"] is None
-    assert item["rationale"]["threshold"]["value"] == 0.5
+    assert item["rationale"]["threshold"]["value"] == 0.19  # MDP dispatch line for chicken, normal chiller
+    assert item["rationale"]["policy"] == "mdp" and item["rationale"]["chiller"] == "normal"
 
 
 def approve(client, rec_id):
@@ -166,3 +169,20 @@ def test_flag_lets_salvage_be_raised(client, db, products, aged_batch_with_rec):
     recompute_all(db, products, AGED_NOW + timedelta(hours=10))
     pending = db.query(Recommendation).filter_by(batch_id=batch_id, status="pending").one()
     assert pending.type == "SALVAGE"
+
+
+def test_warm_chiller_uses_earlier_mdp_line(db, seeded, products):
+    # CHK-003 has ~38% life left: hold on the normal MDP policy, dispatch on the warm one (line 0.44).
+    from app.db.models import Batch, Telemetry
+
+    b = db.query(Batch).filter_by(code="CHK-003").one()
+    b.received_at = AGED_NOW - timedelta(hours=105)
+    db.add(
+        Telemetry(
+            device_id="esp32-chiller-01", zone_id="chiller-a", seq=1, humidity_pct=85, ts=AGED_NOW, temperature_c=23
+        )
+    )
+    db.commit()
+    recompute_all(db, products, AGED_NOW)
+    rec = db.query(Recommendation).filter_by(batch_id=b.id, status="pending").one()
+    assert rec.type == "PRIORITY_DISPATCH" and rec.rationale["chiller"] == "warm"
