@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from functools import lru_cache
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, aliased
@@ -16,7 +17,9 @@ from app.db.models import (
     RecType,
     User,
 )
+from app.engine.mdp import solve
 from app.engine.recommend import Thresholds, decide
+from app.engine.rul import RulParams
 from app.schemas.recommendations import DecisionIn, RecommendationOut, TaskIn
 from app.services.audit import record, snapshot
 
@@ -48,13 +51,23 @@ def to_out(rec: Recommendation, batch_code: str, decider: str | None, handler: s
     )
 
 
-def refresh_for_batch(db: Session, batch: Batch, state: BatchState, cfg: ProductConfig) -> Recommendation | None:
+@lru_cache
+def mdp_thresholds(life_h: float, t_ref_c: float, q10: float, rate_floor: float) -> tuple[Thresholds, Thresholds]:
+    """The MDP's optimal (normal chiller, warm chiller) thresholds for a product. Solved once per product."""
+    r = solve(RulParams(life_h, t_ref_c, q10, rate_floor))
+    return Thresholds(r.salvage_ratio[0], r.dispatch_ratio[0]), Thresholds(r.salvage_ratio[1], r.dispatch_ratio[1])
+
+
+def refresh_for_batch(
+    db: Session, batch: Batch, state: BatchState, cfg: ProductConfig, warm: bool = False
+) -> Recommendation | None:
     """Create or update the batch's pending recommendation. Flushes; the caller commits.
 
+    Thresholds come from the MDP policy (engine/mdp.py); `warm` picks the warm-chiller policy, which acts earlier.
     While the batch has an open order (an approved recommendation staff have not confirmed or flagged), nothing
     is raised, so a batch never has two open orders. A flagged order is closed, so escalation can follow it.
     """
-    th = Thresholds(cfg.salvage_ratio, cfg.dispatch_ratio)
+    th = mdp_thresholds(cfg.shelf_life_ref_hours, cfg.t_ref_c, cfg.q10, cfg.rate_floor)[1 if warm else 0]
     kind = decide(state.rul_h, state.rul_ratio, th)
     if kind is None:
         return None  # existing pending recommendations are left for the supervisor
@@ -68,6 +81,8 @@ def refresh_for_batch(db: Session, batch: Batch, state: BatchState, cfg: Product
         "rul_h": state.rul_h,
         "rul_ratio": state.rul_ratio,
         "threshold": {"name": f"{kind.lower()}_ratio", "value": value},
+        "policy": "mdp",
+        "chiller": "warm" if warm else "normal",
         "predicted_expiry": state.predicted_expiry.isoformat() if state.predicted_expiry else None,
         "printed_expiry": batch.printed_expiry.isoformat(),
     }

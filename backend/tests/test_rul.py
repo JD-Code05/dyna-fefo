@@ -41,6 +41,22 @@ def test_herron_cyclic_abuse_band():
     assert 1.5 <= lost_days <= 3.0
 
 
+def test_paper_worked_example_chicken_two_hours_at_23c():
+    # Paper section 3.5.1: chicken (q10 2.97) at 23 C for 2 h ages ~15.8 h, i.e. ~13.8 h more than at 4 C.
+    chicken = RulParams(shelf_life_ref_hours=168, t_ref_c=4, q10=2.97)
+    r = compute_rul(hourly(T0, [23, 23]), T0, T0 + timedelta(hours=2), chicken)
+    assert r.effective_age_h == pytest.approx(15.8, abs=0.05)
+    assert r.effective_age_h - 2 == pytest.approx(13.8, abs=0.05)
+
+
+def test_paper_herron_cycle_with_dataset_q10_loses_about_3_5_days():
+    # Paper sections 3.5.1 and 4.1.2 quote ~3.5 days lost for chicken on the Herron cycle.
+    chicken = RulParams(shelf_life_ref_hours=168, t_ref_c=4, q10=2.97)
+    rs = [Reading(T0 + timedelta(minutes=15 * i), 4 if (i // 8) % 2 == 0 else 23, 85) for i in range(97)]
+    r = compute_rul(rs, T0, T0 + timedelta(hours=24), chicken)
+    assert (r.effective_age_h - 24) / 24 == pytest.approx(3.5, abs=0.1)
+
+
 def test_gap_beyond_cap_ages_at_reference_rate():
     rs = [Reading(T0, 30, 85), Reading(T0 + timedelta(hours=10), 30, 85)]
     r = compute_rul(rs, T0, T0 + timedelta(hours=10), P)

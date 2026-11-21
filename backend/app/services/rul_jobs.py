@@ -63,7 +63,14 @@ def recompute_all(db: Session, products: dict[str, ProductConfig], now: datetime
         try:
             with db.begin_nested():  # savepoint: a failing batch leaves no partial rows
                 state = recompute_batch(db, b, cfg, t)
-                refresh_for_batch(db, b, state, cfg)
+                last_temp = db.scalar(
+                    select(Telemetry.temperature_c)
+                    .where(Telemetry.zone_id == b.zone_id, Telemetry.ts <= t)
+                    .order_by(Telemetry.ts.desc())
+                    .limit(1)
+                )
+                # Warm chiller = latest reading in the danger zone (> 4 C, Herron et al. 2022): MDP warm policy.
+                refresh_for_batch(db, b, state, cfg, warm=last_temp is not None and last_temp > 4.0)
         except Exception:
             log.exception("batch %s: recompute failed, skipped", b.id)
             continue
