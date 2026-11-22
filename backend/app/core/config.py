@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     test_database_url: str
     mqtt_host: str = "mqtt"
     mqtt_port: int = 1883
+    mqtt_username: str = "ingest"
+    mqtt_password: str = "dev-only-mqtt-ingest-password"
     cors_origins: list[str] = ["http://localhost:3000"]
     # Dev defaults so `docker compose up` works offline; set real values in .env for anything shared.
     jwt_secret: str = "dev-only-jwt-secret-change-me-before-sharing"  # HS256 wants 32+ bytes

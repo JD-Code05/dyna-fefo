@@ -17,6 +17,8 @@ INTERVAL_S = float(os.getenv("INTERVAL_S", "5"))
 BASE_TEMP_C = float(os.getenv("BASE_TEMP_C", "3.5"))
 BASE_HUMIDITY_PCT = float(os.getenv("BASE_HUMIDITY_PCT", "86"))
 MQTT_HOST = os.getenv("MQTT_HOST", "mqtt")
+# The broker only takes known devices: username = device ID, password = the device's key.
+DEVICE_KEY = os.getenv("DEVICE_KEY", "")
 API_URL = os.getenv("API_URL", "http://api:8000/api/v1")
 H = 3600.0
 
@@ -49,6 +51,7 @@ def temperature(scenario: str, t: float) -> float:
 
 def main() -> None:
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    client.username_pw_set(DEVICE_ID, DEVICE_KEY)
     while True:
         try:
             client.connect(MQTT_HOST, 1883)

@@ -18,8 +18,15 @@ services:
     image: eclipse-mosquitto:2
     volumes:
       - ./infra/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./infra/mosquitto/acl:/mosquitto/config/acl:ro
+      - ./infra/mosquitto/start.sh:/mosquitto/config/start.sh:ro
+    # start.sh hashes these into the broker's password file; device passwords are the device keys
+    environment:
+      MQTT_INGEST_PASSWORD: ${MQTT_INGEST_PASSWORD:-dev-only-mqtt-ingest-password}
+      MQTT_DEVICES: ${MQTT_DEVICES:-esp32-chiller-01:dev-key-01 esp32-chiller-02:dev-key-02 esp32-chiller-03:dev-key-03}
+    entrypoint: ["sh", "/mosquitto/config/start.sh"]
     healthcheck:
-      test: ["CMD-SHELL", "mosquitto_sub -t '$$SYS/#' -C 1 -W 3"]
+      test: ["CMD-SHELL", "mosquitto_sub -u ingest -P \"$$MQTT_INGEST_PASSWORD\" -t '$$SYS/#' -C 1 -W 3"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -60,6 +67,8 @@ services:
       TEST_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-dynafefo}:${POSTGRES_PASSWORD:-dynafefo}@db:5432/dynafefo_test
       MQTT_HOST: mqtt
       SIM_MODE: "true"
+      MQTT_USERNAME: ingest
+      MQTT_PASSWORD: ${MQTT_INGEST_PASSWORD:-dev-only-mqtt-ingest-password}
     volumes:
       - ./backend:/app
       - ./data:/data:ro
@@ -79,6 +88,7 @@ services:
       SCENARIO: ${SCENARIO:-normal}
       SIM_SPEEDUP: ${SIM_SPEEDUP:-1}
       DEVICE_ID: esp32-chiller-01
+      DEVICE_KEY: ${DEVICE_KEY_A:-dev-key-01}
       ZONE_ID: chiller-a
       BASE_TEMP_C: 2 # chicken: PNS/BAFS 103:2016 poultry chillers 0-4 C
       BASE_HUMIDITY_PCT: 88 # simulated, display only
@@ -96,6 +106,7 @@ services:
       SCENARIO: ${SCENARIO_B:-normal}
       SIM_SPEEDUP: ${SIM_SPEEDUP:-1}
       DEVICE_ID: esp32-chiller-02
+      DEVICE_KEY: ${DEVICE_KEY_B:-dev-key-02}
       ZONE_ID: chiller-b
       BASE_TEMP_C: 3.5 # milk: PNS/BAFS 210:2017 not more than 4 C
       BASE_HUMIDITY_PCT: 80 # simulated, display only
@@ -113,6 +124,7 @@ services:
       SCENARIO: ${SCENARIO_C:-normal}
       SIM_SPEEDUP: ${SIM_SPEEDUP:-1}
       DEVICE_ID: esp32-chiller-03
+      DEVICE_KEY: ${DEVICE_KEY_C:-dev-key-03}
       ZONE_ID: chiller-c
       BASE_TEMP_C: 3 # tomato dish (ready-to-eat): no BAFS standard; US FDA Food Code 5 C
       BASE_HUMIDITY_PCT: 75 # simulated, display only

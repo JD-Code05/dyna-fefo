@@ -63,6 +63,12 @@ def test_mqtt_handler_drops_bad_and_stores_good(db, seeded):
     assert db.query(Telemetry).count() == 1
 
 
+def test_mqtt_handler_drops_reading_posted_on_another_devices_topic(db, seeded):
+    # chiller-01's reading arriving on chiller-02's topic: someone is posing as another sensor
+    handle_message(db, "sensors/esp32-chiller-02/telemetry", json.dumps(payload(seq=8)).encode())
+    assert db.query(Telemetry).count() == 0
+
+
 def test_zones_show_latest_and_danger(client, seeded):
     client.post("/api/v1/telemetry", json=payload(temperature_c=9.0), headers=H)
     z = {z["id"]: z for z in client.get("/api/v1/zones").json()["items"]}

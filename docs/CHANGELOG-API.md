@@ -2,6 +2,14 @@
 
 Breaking and notable changes to `/api/v1`, newest first. After pulling, regenerate the frontend types: `cd frontend && npm run gen:api`.
 
+## 2026-11-22: MQTT logins and topic rules
+
+Not an HTTP API change. Anything publishing to the broker must now log in.
+
+- Mosquitto refuses anonymous clients. Sensors log in with username = device ID and password = device key (the same key `POST /telemetry` checks); the worker logs in as `ingest`. Logins come from `MQTT_DEVICES` / `MQTT_INGEST_PASSWORD` (dev defaults in `.env.example`), hashed by `mosquitto_passwd` when the broker starts.
+- `infra/mosquitto/acl`: a sensor may only publish to `sensors/<its id>/telemetry`; only `ingest` may read the sensor topics.
+- The subscriber drops a reading whose `device_id` doesn't match the topic it arrived on (logged as `topic_mismatch`).
+
 ## 2026-11-22: real sign-in (breaking)
 
 - **`X-Demo-User` is removed.** Every endpoint except `GET /health`, `POST /auth/login` and `POST /telemetry` (device key) now needs `Authorization: Bearer <token>`. Missing, expired or tampered tokens get 401 `not_authenticated`.

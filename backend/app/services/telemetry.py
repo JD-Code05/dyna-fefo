@@ -45,7 +45,11 @@ def ingest(db: Session, data: TelemetryIn, device_key: str | None) -> bool:
 
 def handle_message(db: Session, topic: str, payload: bytes) -> None:
     try:
-        ingest(db, TelemetryIn.model_validate_json(payload), None)
+        data = TelemetryIn.model_validate_json(payload)
+        # The broker only lets a device write to its own topic, so the topic is the trusted identity.
+        if topic != f"sensors/{data.device_id}/telemetry":
+            raise ApiError(403, "topic_mismatch", f"{data.device_id} reading arrived on {topic}")
+        ingest(db, data, None)
     except (ApiError, ValidationError) as e:
         db.rollback()
         log.warning("dropped message on %s: %s", topic, e)

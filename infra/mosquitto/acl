@@ -1,0 +1,9 @@
+# Who may read or write which topic. Anything not listed here is denied.
+
+# The worker reads every sensor's readings, and $SYS for the Docker health check.
+user ingest
+topic read sensors/+/telemetry
+topic read $SYS/#
+
+# A sensor logs in with its device ID as username and may only publish to its own topic.
+pattern write sensors/%u/telemetry
