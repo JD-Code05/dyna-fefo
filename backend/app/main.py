@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import (
     audit,
+    auth,
     batches,
     devices,
     health,
@@ -26,7 +27,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     register_error_handlers(app)
-    for r in (health, me, products, recommendations, telemetry, zones, devices, audit, batches):
+    for r in (health, auth, me, products, recommendations, telemetry, zones, devices, audit, batches):
         app.include_router(r.router, prefix="/api/v1")
     return app
 

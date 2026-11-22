@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Login */
+        post: operations["login_api_v1_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -476,6 +493,13 @@ export interface components {
             /** Danger */
             danger: boolean;
         };
+        /** LoginIn */
+        LoginIn: {
+            /** Username */
+            username: string;
+            /** Password */
+            password: string;
+        };
         /** MeOut */
         MeOut: {
             /** Id */
@@ -696,6 +720,20 @@ export interface components {
             /** Seq */
             seq: number;
         };
+        /** TokenOut */
+        TokenOut: {
+            /** Access Token */
+            access_token: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type: string;
+            /** Username */
+            username: string;
+            /** Role */
+            role: string;
+        };
         /** ZoneOut */
         ZoneOut: {
             /** Id */
@@ -760,12 +798,75 @@ export interface operations {
             };
         };
     };
+    login_api_v1_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Locked */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     me_api_v1_me_get: {
         parameters: {
             query?: never;
-            header?: {
-                "x-demo-user"?: string | null;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -815,9 +916,7 @@ export interface operations {
                 limit?: number;
                 offset?: number;
             };
-            header?: {
-                "x-demo-user"?: string | null;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -868,9 +967,7 @@ export interface operations {
                 limit?: number;
                 offset?: number;
             };
-            header?: {
-                "x-demo-user"?: string | null;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -917,9 +1014,7 @@ export interface operations {
     decide_api_v1_recommendations__rec_id__decision_post: {
         parameters: {
             query?: never;
-            header?: {
-                "x-demo-user"?: string | null;
-            };
+            header?: never;
             path: {
                 rec_id: number;
             };
@@ -972,9 +1067,7 @@ export interface operations {
     complete_task_api_v1_recommendations__rec_id__task_post: {
         parameters: {
             query?: never;
-            header?: {
-                "x-demo-user"?: string | null;
-            };
+            header?: never;
             path: {
                 rec_id: number;
             };
@@ -1031,9 +1124,7 @@ export interface operations {
                 from?: string | null;
                 to?: string | null;
             };
-            header?: {
-                "x-demo-user"?: string | null;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -1136,9 +1227,7 @@ export interface operations {
                 limit?: number;
                 offset?: number;
             };
-            header?: {
-                "x-demo-user"?: string | null;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -1189,9 +1278,7 @@ export interface operations {
                 limit?: number;
                 offset?: number;
             };
-            header?: {
-                "x-demo-user"?: string | null;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -1238,9 +1325,7 @@ export interface operations {
     create_device_api_v1_devices_post: {
         parameters: {
             query?: never;
-            header?: {
-                "x-demo-user"?: string | null;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -1291,9 +1376,7 @@ export interface operations {
     delete_device_api_v1_devices__device_id__delete: {
         parameters: {
             query?: never;
-            header?: {
-                "x-demo-user"?: string | null;
-            };
+            header?: never;
             path: {
                 device_id: string;
             };
@@ -1340,9 +1423,7 @@ export interface operations {
     update_device_api_v1_devices__device_id__patch: {
         parameters: {
             query?: never;
-            header?: {
-                "x-demo-user"?: string | null;
-            };
+            header?: never;
             path: {
                 device_id: string;
             };
@@ -1401,9 +1482,7 @@ export interface operations {
                 limit?: number;
                 offset?: number;
             };
-            header?: {
-                "x-demo-user"?: string | null;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -1455,9 +1534,7 @@ export interface operations {
                 limit?: number;
                 offset?: number;
             };
-            header?: {
-                "x-demo-user"?: string | null;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -1504,9 +1581,7 @@ export interface operations {
     create_batch_api_v1_batches_post: {
         parameters: {
             query?: never;
-            header?: {
-                "x-demo-user"?: string | null;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -1559,9 +1634,7 @@ export interface operations {
             query?: {
                 include_deleted?: boolean;
             };
-            header?: {
-                "x-demo-user"?: string | null;
-            };
+            header?: never;
             path: {
                 batch_id: number;
             };
@@ -1610,9 +1683,7 @@ export interface operations {
     delete_batch_api_v1_batches__batch_id__delete: {
         parameters: {
             query?: never;
-            header?: {
-                "x-demo-user"?: string | null;
-            };
+            header?: never;
             path: {
                 batch_id: number;
             };
@@ -1659,9 +1730,7 @@ export interface operations {
     update_batch_api_v1_batches__batch_id__patch: {
         parameters: {
             query?: never;
-            header?: {
-                "x-demo-user"?: string | null;
-            };
+            header?: never;
             path: {
                 batch_id: number;
             };
@@ -1716,9 +1785,7 @@ export interface operations {
             query?: {
                 include_deleted?: boolean;
             };
-            header?: {
-                "x-demo-user"?: string | null;
-            };
+            header?: never;
             path: {
                 batch_id: number;
             };

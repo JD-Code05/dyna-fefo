@@ -26,6 +26,7 @@ def run() -> None:
     s = get_settings()
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.on_connect, client.on_message = _on_connect, _on_message
+    client.username_pw_set(s.mqtt_username, s.mqtt_password)
     while True:  # broker may not be up yet; paho reconnects itself once connected
         try:
             client.connect(s.mqtt_host, s.mqtt_port)

@@ -808,6 +808,8 @@ export const actionTone: Record<string, string> = {
   reject: 'bg-warn/10 text-warn',
   complete: 'bg-ok/10 text-ok',
   flag: 'bg-warn/10 text-warn',
+  login: 'bg-ok/10 text-ok',
+  login_failed: 'bg-danger/10 text-danger',
 }
 const changeSummary = (row: AuditRow) => {
   const rec = (row.after ?? row.before ?? {}) as Record<string, unknown>
@@ -824,6 +826,10 @@ const changeSummary = (row: AuditRow) => {
       return `${rec.type === 'SALVAGE' ? 'Salvaged' : 'Shipped'} batch #${rec.batch_id}`
     case 'flag':
       return `Flagged batch #${rec.batch_id} · ${rec.flag_reason === 'spoiled' ? 'looks spoiled' : 'not found'}`
+    case 'login':
+      return `${row.user} signed in`
+    case 'login_failed':
+      return `Wrong password for ${row.user}`
     default: {
       const fields = Object.keys({ ...(row.before ?? {}), ...(row.after ?? {}) })
       return fields.map((k) => `${k}: ${String(row.before?.[k] ?? '—')} → ${String(row.after?.[k] ?? '—')}`).join(' · ')
@@ -852,7 +858,7 @@ export function HistoryView() {
       <ViewHeading eyebrow="Audit trail" title="Change history" detail="Every create, edit, delete, approval and rejection, newest first. Deleted records stay here." />
       <section className={`${card} flex min-h-0 flex-1 flex-col overflow-hidden p-5`}>
         <div className="flex items-center gap-3">
-          <Dropdown label="Filter by record type" value={entity} options={['All', 'Batch', 'Device', 'Recommendation']} onChange={setEntity} align="left" />
+          <Dropdown label="Filter by record type" value={entity} options={['All', 'Batch', 'Device', 'Recommendation', 'User']} onChange={setEntity} align="left" />
           <span className="font-mono text-xs text-muted">{rows.length} changes</span>
         </div>
         {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-semibold text-danger">{error}</p>}
@@ -874,7 +880,7 @@ export function HistoryView() {
           {rows.map((row) => (
             <div key={row.id} className="grid min-h-[44px] grid-cols-[120px_90px_210px_130px_minmax(0,1fr)] items-center gap-3 px-3 py-2">
               <span className="font-mono text-xs text-muted">{fmtDate(row.ts)}</span>
-              <span className={`w-fit rounded-full px-2 py-0.5 font-mono text-xs font-semibold capitalize ${actionTone[row.action] ?? 'text-muted'}`}>{row.action}</span>
+              <span className={`w-fit rounded-full px-2 py-0.5 font-mono text-xs font-semibold capitalize ${actionTone[row.action] ?? 'text-muted'}`}>{row.action.replace('_', ' ')}</span>
               <span className="text-xs text-fg"><span className="capitalize">{row.entity}</span> <span className="font-mono text-muted">#{row.entity_id}</span></span>
               <span className="font-mono text-xs text-muted">{row.user}</span>
               <span className="flex items-center gap-2.5 break-words text-xs text-fg/80">

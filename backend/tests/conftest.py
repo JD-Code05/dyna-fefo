@@ -10,6 +10,7 @@ from alembic import command
 from app.core.config import get_settings
 from app.core.deps import get_db
 from app.core.products import load_products
+from app.core.security import create_token
 from app.db.seed import seed
 from app.main import create_app
 
@@ -21,7 +22,8 @@ def iso(dt: datetime) -> str:
 
 
 NOW_ISO = iso(NOW)
-STAFF = {"X-Demo-User": "demo-staff"}
+SUPERVISOR = {"Authorization": f"Bearer {create_token('demo-supervisor', 'supervisor')}"}
+STAFF = {"Authorization": f"Bearer {create_token('demo-staff', 'staff')}"}
 
 _engine = create_engine(get_settings().test_database_url)
 
@@ -57,7 +59,7 @@ def db():
 def client(db):
     app = create_app()
     app.dependency_overrides[get_db] = lambda: db
-    return TestClient(app)
+    return TestClient(app, headers=SUPERVISOR)  # signed in as the supervisor unless a test sends other headers
 
 
 @pytest.fixture

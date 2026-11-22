@@ -64,7 +64,8 @@ The approach follows Herron et al. (2022) for cold-chain shelf-life loss and Bui
 - Shelf-life parameters are fitted to a synthetic, LLM-generated dataset, not to field data
 - Humidity is simulated and does not affect shelf life
 - Evaluation results come from simulation, not field trials
-- Password login is not built yet: the demo picks the user with an `X-Demo-User` header
+- Sign-in uses two seeded demo accounts (`demo-supervisor`, `demo-staff`; dev passwords in `.env.example`). There is no account management screen, MFA or HTTPS yet
+- MQTT has passwords and per-device topic rules but no TLS, and the broker port is only reachable inside Docker. A sensor added from the Sensors tab gets an MQTT login only after its key is added to `MQTT_DEVICES` and the broker restarts (the HTTP ingest works at once)
 
 ## System Architecture
 
@@ -80,7 +81,7 @@ flowchart LR
     FE -- approve / reject, confirm tasks --> API
 ```
 
-1. Each chiller's simulator publishes readings to `sensors/{device_id}/telemetry` over MQTT. `POST /api/v1/telemetry` accepts the same payload.
+1. Each chiller's simulator publishes readings to `sensors/{device_id}/telemetry` over MQTT. `POST /api/v1/telemetry` accepts the same payload. The broker allows no anonymous clients: each sensor logs in with its device ID and device key and may only publish to its own topic (`infra/mosquitto/acl`); the worker logs in as `ingest`, and drops any reading whose `device_id` does not match its topic.
 2. The worker validates and stores the readings in a TimescaleDB hypertable.
 3. Every 30 seconds the worker recomputes each batch's RUL, then refreshes its recommendation using the MDP lines.
 4. The dashboard reads everything over REST and refreshes every 5 seconds.

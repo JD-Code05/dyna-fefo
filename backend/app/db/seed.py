@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.products import load_products
+from app.core.security import hash_password
 from app.db.models import Batch, Device, Product, Role, User, Zone
 from app.db.session import SessionLocal
 
@@ -33,11 +34,17 @@ BATCHES = [
 
 
 def seed(db: Session) -> None:
-    if not db.scalar(select(User).where(User.username == "demo-supervisor")):
-        db.add(User(username="demo-supervisor", password_hash=None, role=Role.supervisor.value))
-    if not db.scalar(select(User).where(User.username == "demo-staff")):
-        db.add(User(username="demo-staff", password_hash=None, role=Role.staff.value))
-    products = load_products(get_settings().products_path)
+    s = get_settings()
+    for name, role, password in (
+        ("demo-supervisor", Role.supervisor, s.demo_supervisor_password),
+        ("demo-staff", Role.staff, s.demo_staff_password),
+    ):
+        user = db.scalar(select(User).where(User.username == name))
+        if user is None:
+            db.add(User(username=name, password_hash=hash_password(password), role=role.value))
+        elif user.password_hash is None:  # users seeded before real login had no password
+            user.password_hash = hash_password(password)
+    products = load_products(s.products_path)
     for cfg in products.values():
         db.merge(Product(**cfg.model_dump()))
     for id_, name in ZONES:
