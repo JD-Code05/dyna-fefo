@@ -1,0 +1,3 @@
+# Files run or read inside Linux containers must keep LF, even on a Windows checkout (core.autocrlf).
+*.sh text eol=lf
+infra/mosquitto/* text eol=lf
