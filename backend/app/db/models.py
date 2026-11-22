@@ -51,9 +51,12 @@ class AuditAction(StrEnum):
     reject = "reject"
     complete = "complete"
     flag = "flag"
+    login = "login"
+    login_failed = "login_failed"
 
 
 class AuditEntity(StrEnum):
+    user = "user"
     batch = "batch"
     device = "device"
     recommendation = "recommendation"

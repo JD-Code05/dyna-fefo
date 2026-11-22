@@ -2,6 +2,15 @@
 
 Breaking and notable changes to `/api/v1`, newest first. After pulling, regenerate the frontend types: `cd frontend && npm run gen:api`.
 
+## 2026-11-22: real sign-in (breaking)
+
+- **`X-Demo-User` is removed.** Every endpoint except `GET /health`, `POST /auth/login` and `POST /telemetry` (device key) now needs `Authorization: Bearer <token>`. Missing, expired or tampered tokens get 401 `not_authenticated`.
+- **New `POST /auth/login`** `{username, password}` returns `{access_token, token_type: "bearer", username, role}`. The token is a JWT (HS256) valid for 8 hours. Passwords are stored as argon2 hashes.
+- Wrong password and unknown username both return 401 `bad_credentials` with the same message. After 5 failures in 15 minutes the account returns 423 `account_locked` for 15 minutes.
+- The audit log gains `action: "login" | "login_failed"` with `entity: "user"` (`GET /audit-log?entity=user`).
+- Demo passwords come from `DEMO_SUPERVISOR_PASSWORD` / `DEMO_STAFF_PASSWORD` (dev defaults in `.env.example`); the signing key from `JWT_SECRET`. Existing databases get the hashes on the next API start (the seed fills empty hashes), so no `down -v` is needed.
+- Frontend: `api()` in `src/api/client.ts` sends the token; `setDemoUser` is replaced by `setToken`. Run `npm run gen:api`.
+
 ## 2026-11-21: recommendations come from an MDP
 
 Not breaking; two rationale fields added. Recommendation outcomes change.

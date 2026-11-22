@@ -64,7 +64,7 @@ The approach follows Herron et al. (2022) for cold-chain shelf-life loss and Bui
 - Shelf-life parameters are fitted to a synthetic, LLM-generated dataset, not to field data
 - Humidity is simulated and does not affect shelf life
 - Evaluation results come from simulation, not field trials
-- Password login is not built yet: the demo picks the user with an `X-Demo-User` header
+- Sign-in uses two seeded demo accounts (`demo-supervisor`, `demo-staff`; dev passwords in `.env.example`). There is no account management screen, MFA or HTTPS yet
 
 ## System Architecture
 

@@ -53,9 +53,9 @@ def test_me_is_demo_supervisor(client, seeded):
     assert r.json() == {"id": 1, "username": "demo-supervisor", "role": "supervisor"}
 
 
-def test_me_unseeded_errors(client):
-    r = client.get("/api/v1/me")
-    assert r.status_code == 500 and r.json()["error"]["code"] == "demo_user_missing"
+def test_token_for_a_missing_user_is_refused(client):
+    r = client.get("/api/v1/me")  # valid supervisor token, but no users in the DB
+    assert r.status_code == 401 and r.json()["error"]["code"] == "not_authenticated"
 
 
 def test_products_lists_dataset_products(client, seeded):
@@ -111,7 +111,7 @@ def test_openapi_422_uses_error_schema(client):
 
 def test_me_as_staff(client, seeded):
     assert client.get("/api/v1/me", headers=STAFF).json()["role"] == "staff"
-    assert client.get("/api/v1/me", headers={"X-Demo-User": "nobody"}).json()["username"] == "demo-supervisor"
+    assert client.get("/api/v1/me").json()["username"] == "demo-supervisor"
 
 
 def test_staff_can_read_but_not_write(client, seeded):

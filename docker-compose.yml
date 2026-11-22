@@ -32,6 +32,10 @@ services:
       MQTT_HOST: mqtt
       SIM_MODE: "true"
       CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000"]}
+      # Unset = the dev defaults in app/core/config.py (documented in .env.example)
+      JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret-change-me-before-sharing}
+      DEMO_SUPERVISOR_PASSWORD: ${DEMO_SUPERVISOR_PASSWORD:-Supervisor-Demo-2026}
+      DEMO_STAFF_PASSWORD: ${DEMO_STAFF_PASSWORD:-Staff-Demo-2026}
     volumes:
       - ./backend:/app
       - ./data:/data:ro

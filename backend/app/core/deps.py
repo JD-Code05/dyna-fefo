@@ -1,10 +1,12 @@
 from collections.abc import Callable, Iterator
 
-from fastapi import Depends, Header
+from fastapi import Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.errors import ApiError
+from app.core.security import username_from_token
 from app.db.models import Role, User
 from app.db.session import SessionLocal
 
@@ -14,13 +16,17 @@ def get_db() -> Iterator[Session]:
         yield session
 
 
-def get_current_user(db: Session = Depends(get_db), x_demo_user: str | None = Header(None)) -> User:
-    # AUTH_MODE=demo is the only mode: X-Demo-User: demo-staff picks the seeded staff user, anything else the
-    # supervisor. Anyone can send the header; real login later replaces only this function.
-    username = "demo-staff" if x_demo_user == "demo-staff" else "demo-supervisor"
-    user = db.scalar(select(User).where(User.username == username))
+_bearer = HTTPBearer(auto_error=False)  # also gives /docs its Authorize button
+
+
+def get_current_user(
+    db: Session = Depends(get_db), cred: HTTPAuthorizationCredentials | None = Depends(_bearer)
+) -> User:
+    # The role is read from the DB on every request, so a changed role applies at once (not at token expiry).
+    username = username_from_token(cred.credentials) if cred else None
+    user = db.scalar(select(User).where(User.username == username)) if username else None
     if user is None:
-        raise ApiError(500, "demo_user_missing", "Demo user is not seeded; run python -m app.db.seed")
+        raise ApiError(401, "not_authenticated", "Sign in required")
     return user
 
 
