@@ -786,13 +786,14 @@ export function DecisionsView({ onOpenQueue }: { onOpenQueue: () => void }) {
 
 function ProductRow({ batch }: { batch: StockRecord }) {
   const lost = batch.lostHours
+  const expired = batch.dynamicHours <= 0
   const critical = batch.breach === 'critical'
   return (
     <div className="grid h-[72px] grid-cols-[1.2fr_0.8fr_1fr_1fr_90px_1.2fr] items-center gap-3 px-3 hover:bg-white/[0.02]">
       <span><strong className="block text-xs text-fg">{batch.product}</strong><small className="font-mono text-xs text-muted">{batch.id} · {batch.units} units</small></span>
       <span className="text-xs text-muted">{batch.zone}</span>
       <span className="font-mono text-xs text-muted">{fmtDate(batch.printedExpiry)}</span>
-      <span className={`font-mono text-xs font-semibold ${batch.breach ? 'text-warn' : 'text-fg'}`}>{fmtDate(batch.predictedExpiry)}<small className={`mt-1 block text-xs font-normal ${lost > 4 ? 'text-danger' : 'text-muted'}`}>{lost > 4 ? `${lost}h earlier` : 'On track'}</small></span>
+      <span className={`font-mono text-xs font-semibold ${batch.breach ? 'text-warn' : 'text-fg'}`}>{fmtDate(batch.predictedExpiry)}<small className={`mt-1 block text-xs font-normal ${expired || lost > 4 ? 'text-danger' : 'text-muted'}`}>{expired ? 'Expired' : lost > 4 ? `${lost}h earlier` : 'On track'}</small></span>
       <span className={`font-mono text-sm font-bold ${critical || batch.dynamicHours < 24 ? 'text-danger' : batch.breach || batch.dynamicHours < 48 ? 'text-warn' : 'text-ok'}`}>{batch.dynamicHours}h</span>
       <span className="flex items-center gap-2"><span className={`grid size-7 place-items-center rounded-lg ${batch.action === 'dispatch' ? 'bg-accent/10 text-accent' : batch.action === 'audit' ? 'bg-danger/10 text-danger' : 'bg-ok/10 text-ok'}`}>{batch.action === 'dispatch' ? <Truck className="size-3.5" /> : batch.action === 'audit' ? <AlertTriangle className="size-3.5" /> : <Check className="size-3.5" />}</span><span className="text-xs leading-tight text-fg/80">{batch.rec}</span></span>
     </div>

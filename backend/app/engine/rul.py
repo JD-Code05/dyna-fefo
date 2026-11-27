@@ -43,32 +43,43 @@ def _gap_age(gap_h: float, carried_rate: float, p: RulParams) -> float:
     return carried_rate * min(gap_h, p.max_dt_hours) + max(0.0, gap_h - p.max_dt_hours)
 
 
+def _hours_to_age(need: float, carried_rate: float, p: RulParams) -> float:
+    """Inverse of _gap_age: hours into a gap until `need` more hours of age have built up."""
+    first = carried_rate * p.max_dt_hours
+    return need / carried_rate if need <= first else p.max_dt_hours + (need - first)
+
+
 def compute_rul(readings: Sequence[Reading], received_at: datetime, now: datetime, p: RulParams) -> RulResult:
     # Dedupe by timestamp (last wins), drop pre-receipt readings, sort ascending.
     by_ts = {r.ts: r for r in readings if r.ts >= received_at}
     pts = [by_ts[ts] for ts in sorted(by_ts)]
 
     # Piecewise-constant: each reading's rate holds until the next reading. Before the first
-    # reading there is no carried rate, so the first gap uses the reference rate.
-    age = 0.0
-    prev_ts = received_at
-    prev_rate = 1.0
+    # reading there is no carried rate, so the first gap uses the reference rate. The last
+    # reading's rate carries forward to now (the tail segment), same gap rule.
+    segments = []  # (start, end, carried rate)
+    prev_ts, prev_rate = received_at, 1.0
     for r in pts:
-        age += _gap_age(_hours(r.ts - prev_ts), prev_rate, p)
+        segments.append((prev_ts, r.ts, prev_rate))
         prev_ts, prev_rate = r.ts, rate(r.temperature_c, p)
+    if now > prev_ts:
+        segments.append((prev_ts, now, prev_rate))
 
-    # Tail: last reading's rate carries forward to now, same gap rule.
-    anchor = pts[-1].ts if pts else received_at
-    if now > anchor:
-        age += _gap_age(_hours(now - anchor), prev_rate, p)
+    life = p.shelf_life_ref_hours
+    age, expired_at = 0.0, None
+    for start, end, carried in segments:
+        gained = _gap_age(_hours(end - start), carried, p)
+        if expired_at is None and age + gained >= life:  # the moment life ran out, so it doesn't slide with the clock
+            expired_at = start + timedelta(hours=_hours_to_age(life - age, carried, p))
+        age += gained
 
-    rul_h = max(0.0, p.shelf_life_ref_hours - age)
+    rul_h = max(0.0, life - age)
     # Expiry is counted from the last reading; with no readings, from now (the age is up to now).
     expiry_anchor = pts[-1].ts if pts else now
     return RulResult(
         effective_age_h=age,
         rul_h=rul_h,
-        rul_ratio=rul_h / p.shelf_life_ref_hours,
+        rul_ratio=rul_h / life,
         last_ts=pts[-1].ts if pts else None,
-        predicted_expiry=expiry_anchor + timedelta(hours=rul_h),
+        predicted_expiry=expired_at or expiry_anchor + timedelta(hours=rul_h),
     )

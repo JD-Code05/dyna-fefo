@@ -3,7 +3,6 @@ import math
 import os
 import random
 import time
-import urllib.request
 from datetime import UTC, datetime, timedelta
 
 import paho.mqtt.client as mqtt
@@ -19,20 +18,18 @@ BASE_HUMIDITY_PCT = float(os.getenv("BASE_HUMIDITY_PCT", "86"))
 MQTT_HOST = os.getenv("MQTT_HOST", "mqtt")
 # The broker only takes known devices: username = device ID, password = the device's key.
 DEVICE_KEY = os.getenv("DEVICE_KEY", "")
-API_URL = os.getenv("API_URL", "http://api:8000/api/v1")
+TOPIC = f"sensors/{DEVICE_ID}/telemetry"
 H = 3600.0
 
 
-def resume_from(now: datetime) -> datetime:
-    """Continue after the zone's latest stored reading, so a restart never rewinds a clock that SIM_SPEEDUP ran ahead."""
-    try:
-        # shortcut: unauthenticated /zones call; needs a token once login exists
-        with urllib.request.urlopen(f"{API_URL}/zones", timeout=5) as r:
-            zone = next(z for z in json.load(r)["items"] if z["id"] == ZONE_ID)
-        latest = datetime.fromisoformat(zone["latest"]["ts"])
-        return max(now, latest + timedelta(seconds=INTERVAL_S * SPEEDUP))
-    except Exception:  # no API, no zone or no readings yet: start from now
-        return now
+def resume_from(client: mqtt.Client, now: datetime) -> datetime:
+    """Continue after this sensor's last reading (retained by the broker), so a restart never rewinds a clock that SIM_SPEEDUP ran ahead."""
+    last: list[datetime] = []
+    client.on_message = lambda c, u, m: last.append(datetime.fromisoformat(json.loads(m.payload)["ts"]))
+    client.subscribe(TOPIC)
+    time.sleep(2)  # the broker sends the retained message right after the subscribe; none yet = fresh start
+    client.unsubscribe(TOPIC)
+    return max([now] + [t + timedelta(seconds=INTERVAL_S * SPEEDUP) for t in last])
 
 
 def temperature(scenario: str, t: float) -> float:
@@ -59,7 +56,7 @@ def main() -> None:
         except OSError:
             time.sleep(2)
     client.loop_start()
-    start, n = resume_from(datetime.now(UTC)), 0
+    start, n = resume_from(client, datetime.now(UTC)), 0
     seq0 = int(time.time())  # survives restarts against a persisted DB
     while True:
         t = n * INTERVAL_S * SPEEDUP
@@ -71,7 +68,7 @@ def main() -> None:
             "humidity_pct": round(min(100.0, max(0.0, BASE_HUMIDITY_PCT + random.uniform(-2, 2))), 1),
             "seq": seq0 + n,
         }
-        client.publish(f"sensors/{DEVICE_ID}/telemetry", json.dumps(msg))
+        client.publish(TOPIC, json.dumps(msg), retain=True)
         n += 1
         time.sleep(INTERVAL_S)
 
