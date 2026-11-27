@@ -7,3 +7,5 @@ topic read $SYS/#
 
 # A sensor logs in with its device ID as username and may only publish to its own topic.
 pattern write sensors/%u/telemetry
+# It may read its own topic too, so a restarted simulator can resume from its last (retained) reading.
+pattern read sensors/%u/telemetry

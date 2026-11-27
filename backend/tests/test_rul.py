@@ -87,6 +87,19 @@ def test_pre_receipt_readings_ignored_and_new_batch_full():
     assert r.rul_ratio == 1.0 and r.effective_age_h == 0
 
 
+def test_expired_batch_expiry_is_when_life_ran_out_not_now():
+    # 240 h life at the 4 C reference: life runs out at hour 240, and the date stays there as time goes on.
+    r = compute_rul(hourly(T0, [4] * 301), T0, T0 + timedelta(hours=300), P)
+    assert r.rul_h == 0
+    assert r.predicted_expiry == T0 + timedelta(hours=240)
+    # Warm: 2.5x ageing at 14 C, so 240 h of life is used up after 96 h.
+    r = compute_rul(hourly(T0, [14] * 201), T0, T0 + timedelta(hours=200), P)
+    assert r.predicted_expiry == T0 + timedelta(hours=96)
+    # No readings: ages at the reference rate, so it runs out at hour 240 too.
+    r = compute_rul([], T0, T0 + timedelta(hours=300), P)
+    assert r.predicted_expiry == T0 + timedelta(hours=240)
+
+
 def test_rul_never_negative():
     r = compute_rul(hourly(T0, [40] * 200), T0, T0 + timedelta(hours=199), P)
     assert r.rul_h == 0 and 0 <= r.rul_ratio <= 1
