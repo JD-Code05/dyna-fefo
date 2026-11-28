@@ -31,6 +31,7 @@ export default function PenguinMascot() {
     // ---- layout: the space right of where the text actually ends, measured in .wrap coordinates ----
     let xLeft = 0, xRight = 0, yBase = 0, range = 400, shown = true, settled = false
     const measure = () => {
+      const wasHidden = el.style.display === 'none'
       el.style.width = ''
       el.style.display = ''
       // landing.css arrives with the page's lazy chunk; until it applies, .wrap isn't positioned and every
@@ -70,8 +71,10 @@ export default function PenguinMascot() {
       xLeft = Math.min(xRight, textRight + 16 - ART_LEFT * width) // art's left edge 16 px right of the text
       yBase = demoTop - width * CANVAS_RATIO - 6
       range = Math.max(260, demoTop * 0.75)
-      if (!settled) pos.x = pos.to = xRight // until it's shown, snap into place instead of walking there
-      else if (!el.classList.contains('ready')) requestAnimationFrame(() => el.classList.add('ready'))
+      // until it's shown (or when it reappears after being hidden), snap into place instead of walking there
+      if (!settled || wasHidden) pos.x = pos.to = xRight
+      if (settled && !el.classList.contains('ready')) requestAnimationFrame(() => el.classList.add('ready'))
+      if (reduce) el.style.transform = `translate(${xRight}px, ${yBase}px)` // the still penguin follows every re-measure
     }
 
     // ---- frame swapping: the new frame fades in on the back layer while the old one fades out ----
@@ -104,13 +107,23 @@ export default function PenguinMascot() {
     }))
     if (document.fonts) document.fonts.ready.then(reveal)
     else reveal()
+
+    // Measure again whenever the hero's layout changes size (the web font reflowing the text, the demo card
+    // rendering): one-off load/font events can fire before the layout settles, which once left the penguin
+    // measured against a demo card at the top of the hero.
+    const ro = new ResizeObserver(() => measure())
+    ro.observe(wrap)
+    const demo = wrap.querySelector('.frame')
+    if (demo) ro.observe(demo)
+    window.addEventListener('resize', measure)
+
     if (reduce) {
       // Reduced motion: one still, friendly pose; no walking, gestures or loop.
       show('c03', false, true)
-      el.style.transform = `translate(${xRight}px, ${yBase}px)`
-      const onResize = () => { measure(); el.style.transform = `translate(${xRight}px, ${yBase}px)` }
-      window.addEventListener('resize', onResize)
-      return () => window.removeEventListener('resize', onResize)
+      return () => {
+        ro.disconnect()
+        window.removeEventListener('resize', measure)
+      }
     }
 
     let mouseX: number | null = null
@@ -149,17 +162,10 @@ export default function PenguinMascot() {
       raf = requestAnimationFrame(frame)
     }
 
-    // Pause while the hero is off screen or the tab is hidden. Measure again whenever the hero's layout changes
-    // size (the web font reflowing the text, the demo card rendering): one-off load/font events can fire before
-    // the layout settles, which once left the penguin measured against a demo card at the top of the hero.
+    // Pause while the hero is off screen or the tab is hidden.
     const io = new IntersectionObserver(([entry]) => { onScreen = entry.isIntersecting; resume() })
     io.observe(wrap)
-    const ro = new ResizeObserver(() => measure())
-    ro.observe(wrap)
-    const demo = wrap.querySelector('.frame')
-    if (demo) ro.observe(demo)
     document.addEventListener('visibilitychange', resume)
-    window.addEventListener('resize', measure)
     document.fonts?.ready.then(measure)
     resume()
 
