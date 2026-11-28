@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
 import { Activity, ArrowRight, Check, ListOrdered, PackageCheck, Sun, Thermometer } from 'lucide-react'
 import Logo from './components/Logo'
+import PenguinMascot from './components/mascot/PenguinMascot'
 import type { Role } from './DesktopDashboard'
 
 const motionAllowed = () => !window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -258,6 +259,7 @@ export default function Landing({ onSignIn }: { onSignIn: (role: Role) => void }
 
       <header className="hero">
         <div className="wrap">
+          <PenguinMascot />
           <div className="hero-lockup">
             <div className="hero-logo"><Logo /></div>
             <h1><span>Fresh</span><span>Ops</span></h1>

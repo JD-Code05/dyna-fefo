@@ -88,6 +88,6 @@ export function pickFrame(s: FrameState): FramePick {
 
 /** Width to draw at: the preferred size if it fits, else the free space down to 160 px, else hidden. */
 export function layoutFit(free: number, preferred: number): number | null {
-  if (free >= preferred) return preferred
-  return free >= 160 ? free : null
+  const width = Math.min(free, preferred)
+  return width >= 160 ? width : null
 }

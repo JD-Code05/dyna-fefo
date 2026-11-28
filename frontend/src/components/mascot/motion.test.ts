@@ -18,6 +18,10 @@ test('layoutFit keeps the preferred size, shrinks to the free space, or hides be
   assert.equal(layoutFit(400, 300), 300)
 })
 
+test('layoutFit hides the penguin when the preferred size itself is under 160 px (no tiny penguin)', () => {
+  assert.equal(layoutFit(400, 64), null)
+})
+
 test('walking left steps through b01-b04 by distance, unmirrored and fast', () => {
   const walking = { ...rest, moving: true, turn: 1, velocity: -50 }
   assert.deepEqual(pickFrame({ ...walking, travelled: 0 }), { id: 'b01', mirror: false, fast: true })
