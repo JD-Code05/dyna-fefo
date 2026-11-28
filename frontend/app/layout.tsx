@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
-import { JetBrains_Mono, Plus_Jakarta_Sans } from 'next/font/google'
+import localFont from 'next/font/local'
 import '../src/index.css'
 
-// next/font downloads the fonts at build time and serves them locally, so the demo works offline.
-const sans = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], variable: '--font-jakarta' })
-const mono = JetBrains_Mono({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-jetbrains' })
+// The fonts live in the repo (Latin variable fonts from Google Fonts, SIL Open Font License), so building needs no
+// internet: next/font/google started failing when Google began serving JetBrains Mono without a file extension.
+const sans = localFont({ src: '../src/fonts/PlusJakartaSans-latin.woff2', weight: '400 800', variable: '--font-jakarta', display: 'swap' })
+const mono = localFont({ src: '../src/fonts/JetBrainsMono-latin.woff2', weight: '400 700', variable: '--font-jetbrains', display: 'swap' })
 
 export const metadata: Metadata = {
   title: 'FreshOps · Perishable Inventory Control',

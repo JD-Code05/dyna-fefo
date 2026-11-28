@@ -3,3 +3,7 @@ __pycache__/
 .pytest_cache/
 .venv/
 .env
+
+# penguin mascot design-time tools and scratch output
+design/mascot/.venv/
+design/mascot/out/
