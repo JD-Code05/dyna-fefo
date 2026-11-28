@@ -34,7 +34,7 @@ First-Expired, First-Out (FEFO) handling relies on the date printed on the packa
 - Let a supervisor approve or reject every recommendation
 - Turn approved recommendations into tasks that staff confirm or flag
 
-The approach follows Herron et al. (2022) for cold-chain shelf-life loss and Buisman et al. (2019) for dynamic shelf life.
+The approach follows Herron et al. (2022) for cold-chain shelf-life loss and Akkas and Honhon (2023) for shipping decisions based on remaining life.
 
 ## Key Features
 
@@ -137,7 +137,7 @@ flowchart LR
 docker compose --profile ui up -d --build     # full system, including the dashboard
 ```
 
-- Dashboard: `http://localhost:3000`. Sign in as Supervisor or Staff (demo build: passwords are not checked yet).
+- Dashboard: `http://localhost:3000`. Sign in as `demo-supervisor` or `demo-staff`; the dev passwords are in `.env.example`.
 - API: `http://localhost:8000`, with docs at `/docs`
 
 The database is seeded on first start: a supervisor and a staff user, the three products and chillers, and nine batches. About 30 seconds later the worker raises the first recommendations: priority dispatch for CHK-004 and MLK-002, and salvage for CHK-005 and TOM-002.
@@ -154,7 +154,7 @@ Scenarios: `normal`, `door_open`, `compressor_failure`, `ltl_abuse`, `recover`. 
 
 ### Tests
 ```bash
-docker compose run --rm api pytest -q     # 145 tests
+docker compose run --rm api pytest -q     # 153 tests
 ```
 
 ## API Overview
@@ -246,5 +246,5 @@ The MDP policy cut lost units by 94.3% compared with static FEFO (paired permuta
 - [x] Supervisor decision flow with audit log, and staff task confirmation
 - [x] Dashboard: overview, stock, analytics, chiller map, decisions, change history, staff view
 - [x] Evaluation script (static FEFO vs. dynamic)
-- [ ] Password login
+- [x] Password login (argon2 hashes, JWT, lockout after 5 failed tries)
 - [ ] Push-based live updates (the dashboard polls every 5 seconds today)
